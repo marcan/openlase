@@ -27,3 +27,7 @@ target_link_libraries(simple openlase)
 
 add_executable(pong pong.c)
 target_link_libraries(pong openlase)
+
+find_package(ALSA REQUIRED)
+add_executable(midiview midiview.c)
+target_link_libraries(midiview openlase ${ALSA_LIBRARIES})

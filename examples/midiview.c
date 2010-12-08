@@ -49,6 +49,8 @@ float avgnotes = 0.0;
 int cur_blip = 0;
 struct blip blips[NUM_BLIPS];
 
+uint16_t channels = 0;
+
 snd_seq_t *open_seq(void) {
 	snd_seq_t *seq_handle;
 
@@ -94,6 +96,8 @@ int midi_action(snd_seq_t *seq_handle) {
 		snd_seq_event_input(seq_handle, &ev);
 		switch (ev->type) {
 			case SND_SEQ_EVENT_NOTEON:
+				if (channels && !(channels & (1<<ev->data.note.channel)))
+					break;
 				if (ev->data.note.velocity != 0) {
 					note_on(ev->data.note.note, ev->data.note.velocity);
 					cnt++;
@@ -208,7 +212,7 @@ int main (int argc, char *argv[])
 	pfd = malloc(npfd * sizeof(*pfd));
 	snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);
 
-	if (argc == 2) {
+	if (argc >= 2) {
 		snd_seq_addr_t addr;
 		if (snd_seq_parse_address(seq_handle, &addr, argv[1]) == 0) {
 			if (snd_seq_connect_from(seq_handle, portid, addr.client, addr.port) == 0) {
@@ -216,6 +220,10 @@ int main (int argc, char *argv[])
 			}
 		}
 	}
+
+	int i;
+	for (i=2; i<argc; i++)
+		channels |= 1<<(atoi(argv[i])-1);
 
 	OLRenderParams params;
 
@@ -241,7 +249,6 @@ int main (int argc, char *argv[])
 
 	float time = 0;
 	float ftime;
-	int i,j;
 
 	int frames = 0;
 
@@ -266,9 +273,7 @@ int main (int argc, char *argv[])
 		if (poll(pfd, npfd, 0) > 0)
 			notes = midi_action(seq_handle);
 
-		int pnotes = notes;
-		if (pnotes > 1)
-			pnotes = 1;
+		int pnotes = (notes+2)/3;
 
 		nps = pnotes / ftime * 1.2;
 

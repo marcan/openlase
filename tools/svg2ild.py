@@ -653,6 +653,14 @@ class SVGReader(xml.sax.handler.ContentHandler):
 				self.addRect(x1, y1, x1+w, y1+h)
 			if 'transform' in attrs.keys():
 				self.popmatrix()
+		elif name == "circle":
+			if 'transform' in attrs.keys():
+				self.transform(attrs['transform'])
+			if self.defsdepth == 0 and self.isvisible(attrs):
+				cx, cy, r = [float(attrs[x]) for x in ('cx','cy','r')]
+				self.addCircle(cx, cy, r)
+			if 'transform' in attrs.keys():
+				self.popmatrix()
 		elif name == 'g':
 			if 'transform' in attrs.keys():
 				self.transform(attrs['transform'])
@@ -769,17 +777,26 @@ class SVGReader(xml.sax.handler.ContentHandler):
 		path.add(PathLine((x1,y2), (x1,y1)))
 		path.transform(self.ts)
 		self.frame.add(path)
+	def addCircle(self, cx, cy, r):
+		cp = 0.55228475 * r
+		path = LaserPath()
+		path.add(PathBezier4((cx,cy-r), (cx+cp,cy-r), (cx+r,cy-cp), (cx+r,cy)))
+		path.add(PathBezier4((cx+r,cy), (cx+r,cy+cp), (cx+cp,cy+r), (cx,cy+r)))
+		path.add(PathBezier4((cx,cy+r), (cx-cp,cy+r), (cx-r,cy+cp), (cx-r,cy)))
+		path.add(PathBezier4((cx-r,cy), (cx-r,cy-cp), (cx-cp,cy-r), (cx,cy-r)))
+		path.transform(self.ts)
+		self.frame.add(path)
 	def isvisible(self, attrs):
 		# skip elements with no stroke or fill
 		# hacky but gets rid of some gunk
 		style = ' '.join(self.style_stack)
 		if 'style' in attrs.keys():
 			style += " %s"%attrs['style']
-		if 'fill' in attrs.keys():
+		if 'fill' in attrs.keys() and attrs['fill'] != "none":
 			return True
 		style = re.sub(r'fill:\s*none\s*(;?)','', style)
 		style = re.sub(r'stroke:\s*none\s*(;?)','', style)
-		if 'stroke' not in style and 'fill' not in style:
+		if 'stroke' not in style and re.match(r'fill:\s*none\s',style):
 			return False
 		if re.match(r'display:\s*none', style):
 			return False

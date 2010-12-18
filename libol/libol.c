@@ -311,6 +311,11 @@ void olSetRenderParams(OLRenderParams *sp)
 	params = *sp;
 }
 
+void olGetRenderParams(OLRenderParams *sp)
+{
+	*sp = params;
+}
+
 void olShutdown(void)
 {
 	jack_client_close (client);

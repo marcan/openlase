@@ -70,6 +70,7 @@ typedef struct {
 int olInit(int buffer_count, int max_points);
 
 void olSetRenderParams(OLRenderParams *params);
+void olGetRenderParams(OLRenderParams *params);
 
 typedef void (*AudioCallbackFunc)(float *leftbuf, float *rightbuf, int samples);
 

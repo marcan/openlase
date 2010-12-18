@@ -712,6 +712,8 @@ float olRenderFrame(int max_fps)
 	int clinv = 0;
 
 	if (!(params.render_flags & RENDER_NOREORDER)) {
+		Point closest_to = {-1,-1,0}; // first look for the object nearest the topleft
+		//Point closest_to = last_render_point;
 		while(cnt) {
 			Object *closest = NULL;
 			for (i=0; i<wframe.objcnt; i++) {
@@ -719,8 +721,8 @@ float olRenderFrame(int max_fps)
 					continue;
 				if (wframe.objects[i].pointcnt < params.min_length)
 					continue;
-				float dx = wframe.objects[i].points[0].x - last_render_point.x;
-				float dy = wframe.objects[i].points[0].y - last_render_point.y;
+				float dx = wframe.objects[i].points[0].x - closest_to.x;
+				float dy = wframe.objects[i].points[0].y - closest_to.y;
 				if (frames[cwbuf].pnext == 0) {
 					dx = wframe.objects[i].points[0].x + 1;
 					dy = wframe.objects[i].points[0].y + 1;
@@ -730,17 +732,18 @@ float olRenderFrame(int max_fps)
 					closest = &wframe.objects[i];
 					clinv = 0;
 					dclosest = distance;
-				}/* XXX Support reversing objects. Commented out due to framerate artifacting when successive frames are traversed in opposite order.
-				    Should fix this and instead force object traversion to begin at the same point each frame to achieve the same effect, maybe. 
-				dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - last_render_point.x;
-				dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - last_render_point.y;
+				}
+				dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - closest_to.x;
+				dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - closest_to.y;
 				distance = fmaxf(fabsf(dx),fabsf(dy));
 				if(!closest || distance < dclosest) {
 					closest = &wframe.objects[i];
 					clinv = 1;
 					dclosest = distance;
-				}*/
+				}
 			}
+			if (!closest)
+				break;
 			if (clinv) {
 				Point *pt = closest->points;
 				int cnt = closest->pointcnt;
@@ -750,13 +753,12 @@ float olRenderFrame(int max_fps)
 					pt[cnt-i-1] = tmp;
 				}
 			}
-			if (!closest)
-				break;
 			//olLog("%d (%d) (nearest to %f,%f)\n", closest - wframe.objects, closest->pointcnt, closest_to.x, closest_to.y);
 			render_object(closest);
 			//olLog("[%d] ", frames[cwbuf].pnext);
 			//olLog("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
 			closest->pointcnt = 0;
+			closest_to = last_render_point;
 			cnt--;
 			last_info.objects++;
 		}

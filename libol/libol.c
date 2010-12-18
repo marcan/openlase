@@ -174,7 +174,7 @@ static int process (nframes_t nframes, void *arg)
 	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
 
 	if (!first_time_full) {
-		olLog("Dummy frame!\n");
+		//olLog("Dummy frame!\n");
 		memset(o_x, 0, nframes * sizeof(sample_t));
 		memset(o_y, 0, nframes * sizeof(sample_t));
 		memset(o_r, 0, nframes * sizeof(sample_t));
@@ -188,11 +188,11 @@ static int process (nframes_t nframes, void *arg)
 	while(nframes) {
 		if (out_point == -1) {
 			if (!first_output_frame) {
-				olLog("First frame! %d\n", crbuf);
+				//olLog("First frame! %d\n", crbuf);
 				first_output_frame = 1;
 			} else {
 				if ((crbuf+1)%fbufs == cwbuf) {
-					olLog("Duplicated frame! %d\n", crbuf);
+					//olLog("Duplicated frame! %d\n", crbuf);
 				} else {
 					crbuf = (crbuf+1)%fbufs;
 					//olLog("Normal frame! %d\n", crbuf);

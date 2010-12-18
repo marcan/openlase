@@ -63,8 +63,8 @@ int main (int argc, char *argv[])
 	while(1) {
 		olLoadIdentity3();
 		olLoadIdentity();
-		olPerspective(24, 1, 1, 100);
-		olTranslate3(0, 0, 4);
+		olPerspective(60, 1, 1, 100);
+		olTranslate3(0, 0, -3);
 
 		for(i=0; i<2; i++) {
 			olScale3(0.6, 0.6, 0.6);

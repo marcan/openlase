@@ -1118,10 +1118,10 @@ void olSetAudioCallback(AudioCallbackFunc f)
 void olFrustum (float l, float r, float b, float t, float n, float f)
 {
 	float m[16] = {
-		(2*n)/(r-l),  0,            (r+l)/(r-l),     0,
-		0,            (2*n)/(t-b),  (t+b)/(t-b),     0,
-		0,            0,            -(f+n)/(f-n),    (-2*f*n)/(f-n),
-		0,            0,            -1,              0,
+		(2*n)/(r-l),  0,            0,               0,
+		0,            (2*n)/(t-b),  0,               0,
+		(r+l)/(r-l),  (t+b)/(t-b),  -(f+n)/(f-n),   -1,
+		0,            0,            (-2*f*n)/(f-n),  0,
 	};
 
 	olMultMatrix3(m);

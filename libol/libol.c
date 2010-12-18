@@ -418,12 +418,17 @@ static void line_to(float x, float y, uint32_t color)
 	dstate.points++;
 }
 
-static void recurse_bezier(float x1, float y1, float x2, float y2, float x3, float y3, uint32_t color)
+static void recurse_bezier(float x1, float y1, float x2, float y2, float x3, float y3, uint32_t color, int depth)
 {
 	float x0 = dstate.last_point.x;
 	float y0 = dstate.last_point.y;
 	int subdivide = 0;
 
+	if (depth > 100) {
+		olLog("Bezier recurse error: %f,%f %f,%f %f,%f %f,%f\n", x0, y0, x1, y1, x2, y2, x3, y3);
+		return;
+	}
+	
 	float dx = x3-x0;
 	float dy = y3-y0;
 	float distance = fmaxf(fabsf(dx),fabsf(dy));
@@ -456,8 +461,8 @@ static void recurse_bezier(float x1, float y1, float x2, float y2, float x3, flo
 		float by1 = (by2 + mcy) * 0.5;
 		float xm = (ax2 + bx1) * 0.5;
 		float ym = (ay2 + by1) * 0.5;
-		recurse_bezier(ax1, ay1, ax2, ay2, xm, ym, color);
-		recurse_bezier(bx1, by1, bx2, by2, x3, y3, color);
+		recurse_bezier(ax1, ay1, ax2, ay2, xm, ym, color, depth+1);
+		recurse_bezier(bx1, by1, bx2, by2, x3, y3, color, depth+1);
 	} else {
 		addpoint(x3, y3, color);
 		dstate.last_point = POINT(x3,y3,color);
@@ -497,7 +502,7 @@ static void bezier_to(float x, float y, uint32_t color)
 	for (i=0; i<dwell; i++)
 		addpoint(last.x,last.y,last.color);
 
-	recurse_bezier(dstate.c1.x, dstate.c1.y, dstate.c2.x, dstate.c2.y, x, y, color);
+	recurse_bezier(dstate.c1.x, dstate.c1.y, dstate.c2.x, dstate.c2.y, x, y, color, 0);
 
 	dstate.last_point = POINT(x,y,color);
 	if (near(dstate.c2, dstate.last_point))

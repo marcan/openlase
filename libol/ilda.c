@@ -97,13 +97,13 @@ IldaFile *olLoadIlda(const char *filename)
 		struct ilda_hdr hdr;
 
 		if (fread(&hdr, sizeof(hdr), 1, fd) != 1) {
-			fprintf(stderr, "ILDA: error while reading header\n");
+			olLog("ILDA: error while reading header\n");
 			olFreeIlda(ild);
 			return NULL;
 		}
 
 		if (hdr.magic != MAGIC) {
-			fprintf(stderr, "ILDA: Invalid magic 0x%08x\n", hdr.magic);
+			olLog("ILDA: Invalid magic 0x%08x\n", hdr.magic);
 			olFreeIlda(ild);
 			return NULL;
 		}
@@ -114,11 +114,11 @@ IldaFile *olLoadIlda(const char *filename)
 
 		switch (hdr.format) {
 		case 0:
-			printf("ILD: Got 3D frame, %d points\n", hdr.count);
+			olLog("ILD: Got 3D frame, %d points\n", hdr.count);
 			ild->points = malloc(sizeof(IldaPoint) * hdr.count);
 			struct icoord3d *tmp3d = malloc(sizeof(struct icoord3d) * hdr.count);
 			if (fread(tmp3d, sizeof(struct icoord3d), hdr.count, fd) != hdr.count) {
-				fprintf(stderr, "ILDA: error while reading frame\n");
+				olLog("ILDA: error while reading frame\n");
 				olFreeIlda(ild);
 				return NULL;
 			}
@@ -133,11 +133,11 @@ IldaFile *olLoadIlda(const char *filename)
 			ild->count = hdr.count;
 			break;
 		case 1:
-			printf("Got 2D frame, %d points\n", hdr.count);
+			olLog("Got 2D frame, %d points\n", hdr.count);
 			ild->points = malloc(sizeof(IldaPoint) * hdr.count);
 			struct icoord2d *tmp2d = malloc(sizeof(struct icoord2d) * hdr.count);
 			if (fread(tmp2d, sizeof(struct icoord2d), hdr.count, fd) != hdr.count) {
-				fprintf(stderr, "ILDA: error while reading frame\n");
+				olLog("ILDA: error while reading frame\n");
 				olFreeIlda(ild);
 				return NULL;
 			}
@@ -152,8 +152,8 @@ IldaFile *olLoadIlda(const char *filename)
 			ild->count = hdr.count;
 			break;
 		case 2:
-			printf("ILDA: Got color palette section, %d entries\n", hdr.count);
-			printf("ILDA: NOT SUPPORTED\n");
+			olLog("ILDA: Got color palette section, %d entries\n", hdr.count);
+			olLog("ILDA: NOT SUPPORTED\n");
 			olFreeIlda(ild);
 			return NULL;
 		}
@@ -187,7 +187,7 @@ void olDrawIlda(IldaFile *ild)
 	int i;
 	olBegin(OL_POINTS);
 	for (i = 0; i < ild->count; i++) {
-		//printf("%f %f %f %d\n", p->x, p->y, p->z, p->is_blank);
+		//olLog("%f %f %f %d\n", p->x, p->y, p->z, p->is_blank);
 		if (p->is_blank)
 			olVertex(p->x, p->y, C_BLACK);
 		else

@@ -132,4 +132,10 @@ void olShutdown(void);
 
 void olSetScissor (float x0, float y0, float x1, float y1);
 
+void olLog(const char *fmt, ...);
+
+typedef void (*LogCallbackFunc)(const char *msg);
+
+void olSetLogCallback(LogCallbackFunc f);
+
 #endif

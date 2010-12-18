@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <jack/jack.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
@@ -121,6 +122,8 @@ ShaderFunc pshader;
 
 AudioCallbackFunc audiocb;
 
+LogCallbackFunc log_cb;
+
 static uint32_t colmul(uint32_t a, uint32_t b)
 {
     uint32_t out = 0;
@@ -134,7 +137,7 @@ static Point *ps_alloc(int count)
 {
 	Point *ret;
 	if ((count + wframe.psnext) > wframe.psmax) {
-		fprintf(stderr, "Point buffer overflow (temp): need %d points, have %d\n", count + wframe.psnext, wframe.psmax);
+		olLog("Point buffer overflow (temp): need %d points, have %d\n", count + wframe.psnext, wframe.psmax);
 		exit(1);
 	}
 	ret = wframe.points + wframe.psnext;
@@ -144,20 +147,20 @@ static Point *ps_alloc(int count)
 
 static int bufsize (nframes_t nframes, void *arg)
 {
-	printf ("the maximum buffer size is now %u\n", nframes);
+	olLog ("the maximum buffer size is now %u\n", nframes);
 	return 0;
 }
 
 static int srate (nframes_t nframes, void *arg)
 {
 	jack_rate = nframes;
-	printf ("Playing back at %u Hz\n", jack_rate);
+	olLog ("Playing back at %u Hz\n", jack_rate);
 	return 0;
 }
 
 static void jack_shutdown (void *arg)
 {
-	printf ("jack_shutdown\n");
+	olLog ("jack_shutdown\n");
 }
 
 static int process (nframes_t nframes, void *arg)
@@ -171,7 +174,7 @@ static int process (nframes_t nframes, void *arg)
 	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
 
 	if (!first_time_full) {
-		printf("Dummy frame!\n");
+		olLog("Dummy frame!\n");
 		memset(o_x, 0, nframes * sizeof(sample_t));
 		memset(o_y, 0, nframes * sizeof(sample_t));
 		memset(o_r, 0, nframes * sizeof(sample_t));
@@ -185,14 +188,14 @@ static int process (nframes_t nframes, void *arg)
 	while(nframes) {
 		if (out_point == -1) {
 			if (!first_output_frame) {
-				printf("First frame! %d\n", crbuf);
+				olLog("First frame! %d\n", crbuf);
 				first_output_frame = 1;
 			} else {
 				if ((crbuf+1)%fbufs == cwbuf) {
-					printf("Duplicated frame! %d\n", crbuf);
+					olLog("Duplicated frame! %d\n", crbuf);
 				} else {
 					crbuf = (crbuf+1)%fbufs;
-					//printf("Normal frame! %d\n", crbuf);
+					//olLog("Normal frame! %d\n", crbuf);
 				}
 			}
 			out_point = 0;
@@ -214,7 +217,7 @@ static int process (nframes_t nframes, void *arg)
 			*o_al++ = frames[crbuf].audio_l[out_point];
 			*o_ar++ = frames[crbuf].audio_r[out_point];
 			out_point++;
-			//printf("%06x %f %f\n", p->x, p->y, p->color);
+			//olLog("%06x %f %f\n", p->x, p->y, p->color);
 		}
 		if (out_point == frames[crbuf].pnext)
 			out_point = -1;
@@ -255,7 +258,7 @@ int olInit(int buffer_count, int max_points)
 	}
 
 	if ((client = jack_client_new ("libol")) == 0) {
-		fprintf (stderr, "jack server not running?\n");
+		olLog ("jack server not running?\n");
 		return -1;
 	}
 
@@ -273,7 +276,7 @@ int olInit(int buffer_count, int max_points)
 	out_ar = jack_port_register (client, "out_ar", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 
 	if (jack_activate (client)) {
-		fprintf (stderr, "cannot activate client");
+		olLog ("cannot activate client");
 		return -1;
 	}
 
@@ -372,17 +375,17 @@ static int get_dwell(float x, float y)
 		float dsy = sy-scy;
 		float dot = dex*dsx + dey*dsy;
 		float lens = sqrtf(dex*dex+dey*dey) * sqrtf(dsx*dsx+dsy*dsy);
-		//printf("%f,%f -> %f,%f -> %f,%f\n", ecx,ecy,ex,ey,x,y);
+		//olLog("%f,%f -> %f,%f -> %f,%f\n", ecx,ecy,ex,ey,x,y);
 		if (lens == 0) {
-			//printf("deg cor\n");
+			//olLog("deg cor\n");
 			return params.corner_dwell;
 		} else {
 			dot = dot / lens;
 			if (dot > params.curve_angle) {
-				//printf("curve\n");
+				//olLog("curve\n");
 				return params.curve_dwell;
 			} else {
-				//printf("cor\n");
+				//olLog("cor\n");
 				return params.corner_dwell;
 			}
 		}
@@ -392,7 +395,7 @@ static int get_dwell(float x, float y)
 static void line_to(float x, float y, uint32_t color)
 {
 	int dwell, i;
-	//printf("points: %d %d\n", dstate.points, dstate.curobj->pointcnt	);
+	//olLog("points: %d %d\n", dstate.points, dstate.curobj->pointcnt	);
 	if (dstate.points == 0) {
 		addpoint(x,y,color);
 		dstate.points++;
@@ -570,7 +573,7 @@ void olEnd(void)
 static void chkpts(int count)
 {
 	if (frames[cwbuf].pnext + count > frames[cwbuf].pmax) {
-		fprintf(stderr, "Point buffer overflow (final): need %d points, have %d\n",
+		olLog("Point buffer overflow (final): need %d points, have %d\n",
 				count + frames[cwbuf].pnext, frames[cwbuf].pmax);
 		exit(1);
 	}
@@ -694,7 +697,7 @@ float olRenderFrame(int max_fps)
 	memset(&last_info, 0, sizeof(last_info));
 
 	while (((cwbuf+1)%fbufs) == crbuf) {
-		//printf("Waiting %d %d\n", cwbuf, crbuf);
+		//olLog("Waiting %d %d\n", cwbuf, crbuf);
 		usleep(1000);
 		first_time_full = 1;
 	}
@@ -744,15 +747,15 @@ float olRenderFrame(int max_fps)
 			}
 			if (!closest)
 				break;
-			//printf("%d (%d) ", closest - wframe.objects, closest->pointcnt);
+			//olLog("%d (%d) (nearest to %f,%f)\n", closest - wframe.objects, closest->pointcnt, closest_to.x, closest_to.y);
 			render_object(closest);
-			//printf("[%d] ", frames[cwbuf].pnext);
-			//printf("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
+			//olLog("[%d] ", frames[cwbuf].pnext);
+			//olLog("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
 			closest->pointcnt = 0;
 			cnt--;
 			last_info.objects++;
 		}
-		//printf("\n");
+		//olLog("\n");
 	} else {
 		for (i=0; i<wframe.objcnt; i++) {
 			if (wframe.objects[i].pointcnt < params.min_length)
@@ -822,7 +825,7 @@ float olRenderFrame(int max_fps)
 		memset(frames[cwbuf].audio_r, 0, sizeof(float)*count);
 	}
 
-	//printf("Rendered frame! %d\n", cwbuf);
+	//olLog("Rendered frame! %d\n", cwbuf);
 	cwbuf = (cwbuf + 1) % fbufs;
 
 	return count / (float)params.rate;
@@ -1141,4 +1144,25 @@ void olSetScissor (float x0, float y0, float x1, float y1)
 void olGetFrameInfo(OLFrameInfo *info)
 {
 	*info = last_info;
+}
+
+void olLog(const char *fmt, ...)
+{
+	char buf[1024];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(buf, 1024, fmt, ap);
+	va_end(ap);
+	buf[1023] = 0;
+
+	if (log_cb)
+		log_cb(buf);
+	else
+		printf("%s", buf);
+}
+
+void olSetLogCallback(LogCallbackFunc f)
+{
+	log_cb = f;
 }

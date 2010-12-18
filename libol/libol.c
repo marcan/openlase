@@ -730,7 +730,6 @@ float olRenderFrame(int max_fps)
 
 	if (!(params.render_flags & RENDER_NOREORDER)) {
 		Point closest_to = {-1,-1,0}; // first look for the object nearest the topleft
-		//Point closest_to = last_render_point;
 		while(cnt) {
 			Object *closest = NULL;
 			for (i=0; i<wframe.objcnt; i++) {
@@ -740,11 +739,9 @@ float olRenderFrame(int max_fps)
 					continue;
 				float dx = wframe.objects[i].points[0].x - closest_to.x;
 				float dy = wframe.objects[i].points[0].y - closest_to.y;
-				if (frames[cwbuf].pnext == 0) {
-					dx = wframe.objects[i].points[0].x + 1;
-					dy = wframe.objects[i].points[0].y + 1;
-				}
-				float distance = fmaxf(fabsf(dx),fabsf(dy));
+				dx = wframe.objects[i].points[0].x + 1;
+				dy = wframe.objects[i].points[0].y + 1;
+				float distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
 				if (!closest || distance < dclosest) {
 					closest = &wframe.objects[i];
 					clinv = 0;
@@ -752,7 +749,7 @@ float olRenderFrame(int max_fps)
 				}
 				dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - closest_to.x;
 				dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - closest_to.y;
-				distance = fmaxf(fabsf(dx),fabsf(dy));
+				distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
 				if(!closest || distance < dclosest) {
 					closest = &wframe.objects[i];
 					clinv = 1;

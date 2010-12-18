@@ -60,6 +60,7 @@ typedef struct {
 } OLRenderParams;
 
 typedef struct {
+	int objects;
 	int points;
 	int resampled_points;
 	int resampled_blacks;

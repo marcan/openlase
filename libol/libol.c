@@ -745,6 +745,7 @@ float olRenderFrame(int max_fps)
 			//printf("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
 			closest->pointcnt = 0;
 			cnt--;
+			last_info.objects++;
 		}
 		//printf("\n");
 	} else {

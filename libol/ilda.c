@@ -209,6 +209,7 @@ void olDrawIlda3D(IldaFile *ild)
 			olVertex3(p->x, p->y, p->z, C_BLACK);
 		else
 			olVertex3(p->x, p->y, p->z, C_WHITE);
+		p++;
 	}
 	olEnd();
 }

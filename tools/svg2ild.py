@@ -883,7 +883,12 @@ def write_ild(params, rframe, path):
 
 if __name__ == "__main__":
 	optimize = True
+	verbose = True
 	params = RenderParameters()
+
+	if sys.argv[1] == "-q":
+		verbose = False
+		sys.argv = [sys.argv[0]] + sys.argv[2:]
 
 	if sys.argv[1] == "-noopt":
 		optimize = False
@@ -893,35 +898,40 @@ if __name__ == "__main__":
 		params.load(sys.argv[2])
 		sys.argv = [sys.argv[0]] + sys.argv[3:]
 
-	print "Parse"
+	if verbose:
+		print "Parse"
 	frame = load_svg(sys.argv[1])
-	print "Done"
+	if verbose:
+		print "Done"
 
 	if optimize:
 		frame.sort()
 
-	print "Render"
+	if verbose:
+		print "Render"
 	rframe = frame.render(params)
-	print "Done"
+	if verbose:
+		print "Done"
 
 	write_ild(params, rframe, sys.argv[2])
 
-	print "Statistics:"
-	print " Objects: %d"%params.objects
-	print " Subpaths: %d"%params.subpaths
-	print " Bezier subdivisions:"
-	print "  Due to rate: %d"%params.rate_divs
-	print "  Due to flatness: %d"%params.flatness_divs
-	print " Points: %d"%params.points
-	print "  Trip: %d"%params.points_trip
-	print "  Line: %d"%params.points_line
-	print "  Bezier: %d"%params.points_bezier
-	print "  Start dwell: %d"%params.points_dwell_start
-	print "  Curve dwell: %d"%params.points_dwell_curve
-	print "  Corner dwell: %d"%params.points_dwell_corner
-	print "  End dwell: %d"%params.points_dwell_end
-	print "  Switch dwell: %d"%params.points_dwell_switch
-	print " Total on: %d"%params.points_on
-	print " Total off: %d"%(params.points - params.points_on)
-	print " Efficiency: %.3f"%(params.points_on/float(params.points))
-	print " Framerate: %.3f"%(params.rate/float(params.points))
+	if verbose:
+		print "Statistics:"
+		print " Objects: %d"%params.objects
+		print " Subpaths: %d"%params.subpaths
+		print " Bezier subdivisions:"
+		print "  Due to rate: %d"%params.rate_divs
+		print "  Due to flatness: %d"%params.flatness_divs
+		print " Points: %d"%params.points
+		print "  Trip: %d"%params.points_trip
+		print "  Line: %d"%params.points_line
+		print "  Bezier: %d"%params.points_bezier
+		print "  Start dwell: %d"%params.points_dwell_start
+		print "  Curve dwell: %d"%params.points_dwell_curve
+		print "  Corner dwell: %d"%params.points_dwell_corner
+		print "  End dwell: %d"%params.points_dwell_end
+		print "  Switch dwell: %d"%params.points_dwell_switch
+		print " Total on: %d"%params.points_on
+		print " Total off: %d"%(params.points - params.points_on)
+		print " Efficiency: %.3f"%(params.points_on/float(params.points))
+		print " Framerate: %.3f"%(params.rate/float(params.points))

@@ -571,7 +571,24 @@ void olEnd(void)
 		}
 	}
 
-	wframe.objcnt++;
+	int nl=0,nr=0,nu=0,nd=0;
+	for (i=0; i<dstate.curobj->pointcnt; i++) {
+		if (!dstate.curobj->points[i].color)
+			continue;
+		if (dstate.curobj->points[i].x > -1)
+			nl = 1;
+		if (dstate.curobj->points[i].x < 1)
+			nr = 1;
+		if (dstate.curobj->points[i].y > -1)
+			nd = 1;
+		if (dstate.curobj->points[i].y < 1)
+			nu = 1;
+
+		if (nl && nr && nu && nd)
+			break;
+	}
+	if (nl && nr && nu && nd)
+		wframe.objcnt++;
 	dstate.curobj = NULL;
 }
 

@@ -18,7 +18,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "libol.h"
-#include <jack/jack.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -26,18 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <math.h>
 #include <unistd.h>
 
-typedef jack_default_audio_sample_t sample_t;
-typedef jack_nframes_t nframes_t;
-
-static jack_port_t *out_x;
-static jack_port_t *out_y;
-static jack_port_t *out_r;
-static jack_port_t *out_g;
-static jack_port_t *out_b;
-static jack_port_t *out_al;
-static jack_port_t *out_ar;
-
-static jack_client_t *client;
+typedef float sample_t;
+typedef int nframes_t;
 
 typedef struct {
 	float x,y;
@@ -145,87 +134,6 @@ static Point *ps_alloc(int count)
 	return ret;
 }
 
-static int bufsize (nframes_t nframes, void *arg)
-{
-	olLog ("the maximum buffer size is now %u\n", nframes);
-	return 0;
-}
-
-static int srate (nframes_t nframes, void *arg)
-{
-	jack_rate = nframes;
-	olLog ("Playing back at %u Hz\n", jack_rate);
-	return 0;
-}
-
-static void jack_shutdown (void *arg)
-{
-	olLog ("jack_shutdown\n");
-}
-
-static int process (nframes_t nframes, void *arg)
-{
-	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
-	sample_t *o_y = (sample_t *) jack_port_get_buffer (out_y, nframes);
-	sample_t *o_r = (sample_t *) jack_port_get_buffer (out_r, nframes);
-	sample_t *o_g = (sample_t *) jack_port_get_buffer (out_g, nframes);
-	sample_t *o_b = (sample_t *) jack_port_get_buffer (out_b, nframes);
-	sample_t *o_al = (sample_t *) jack_port_get_buffer (out_al, nframes);
-	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
-
-	if (!first_time_full) {
-		//olLog("Dummy frame!\n");
-		memset(o_x, 0, nframes * sizeof(sample_t));
-		memset(o_y, 0, nframes * sizeof(sample_t));
-		memset(o_r, 0, nframes * sizeof(sample_t));
-		memset(o_g, 0, nframes * sizeof(sample_t));
-		memset(o_b, 0, nframes * sizeof(sample_t));
-		memset(o_al, 0, nframes * sizeof(sample_t));
-		memset(o_ar, 0, nframes * sizeof(sample_t));
-		return 0;
-	}
-
-	while(nframes) {
-		if (out_point == -1) {
-			if (!first_output_frame) {
-				//olLog("First frame! %d\n", crbuf);
-				first_output_frame = 1;
-			} else {
-				if ((crbuf+1)%fbufs == cwbuf) {
-					//olLog("Duplicated frame! %d\n", crbuf);
-				} else {
-					crbuf = (crbuf+1)%fbufs;
-					//olLog("Normal frame! %d\n", crbuf);
-				}
-			}
-			out_point = 0;
-		}
-		int count = nframes;
-		int left = frames[crbuf].pnext - out_point;
-		if (count > left)
-			count = left;
-		int i;
-		for (i=0; i<count; i++) {
-			Point *p = &frames[crbuf].points[out_point];
-			*o_x++ = p->x;
-			*o_y++ = p->y;
-
-			*o_r++ = ((p->color >> 16) & 0xff) / 255.0f;
-			*o_g++ = ((p->color >> 8) & 0xff) / 255.0f;
-			*o_b++ = (p->color & 0xff) / 255.0f;
-
-			*o_al++ = frames[crbuf].audio_l[out_point];
-			*o_ar++ = frames[crbuf].audio_r[out_point];
-			out_point++;
-			//olLog("%06x %f %f\n", p->x, p->y, p->color);
-		}
-		if (out_point == frames[crbuf].pnext)
-			out_point = -1;
-		nframes -= count;
-	}
-	return 0;
-}
-
 int olInit(int buffer_count, int max_points)
 {
 	int i;
@@ -255,29 +163,6 @@ int olInit(int buffer_count, int max_points)
 		frames[i].points = malloc(frames[i].pmax * sizeof(Point));
 		frames[i].audio_l = malloc(frames[i].pmax * sizeof(float));
 		frames[i].audio_r = malloc(frames[i].pmax * sizeof(float));
-	}
-
-	if ((client = jack_client_new ("libol")) == 0) {
-		olLog ("jack server not running?\n");
-		return -1;
-	}
-
-	jack_set_process_callback (client, process, 0);
-	jack_set_buffer_size_callback (client, bufsize, 0);
-	jack_set_sample_rate_callback (client, srate, 0);
-	jack_on_shutdown (client, jack_shutdown, 0);
-
-	out_x = jack_port_register (client, "out_x", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_y = jack_port_register (client, "out_y", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_r = jack_port_register (client, "out_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_g = jack_port_register (client, "out_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_b = jack_port_register (client, "out_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_al = jack_port_register (client, "out_al", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_ar = jack_port_register (client, "out_ar", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-
-	if (jack_activate (client)) {
-		olLog ("cannot activate client");
-		return -1;
 	}
 
 	olLoadIdentity();
@@ -321,7 +206,6 @@ void olGetRenderParams(OLRenderParams *sp)
 
 void olShutdown(void)
 {
-	jack_client_close (client);
 }
 
 void olBegin(int prim)
@@ -709,6 +593,11 @@ static void render_object(Object *obj)
 	}
 }
 
+#define W 80
+#define H 24
+
+int screen[H][W];
+
 float olRenderFrame(int max_fps)
 {
 	int i;
@@ -718,11 +607,6 @@ float olRenderFrame(int max_fps)
 
 	memset(&last_info, 0, sizeof(last_info));
 
-	while (((cwbuf+1)%fbufs) == crbuf) {
-		//olLog("Waiting %d %d\n", cwbuf, crbuf);
-		usleep(1000);
-		first_time_full = 1;
-	}
 	frames[cwbuf].pnext=0;
 	int cnt = wframe.objcnt;
 	float dclosest = 0;
@@ -848,10 +732,37 @@ float olRenderFrame(int max_fps)
 		memset(frames[cwbuf].audio_r, 0, sizeof(float)*count);
 	}
 
-	//olLog("Rendered frame! %d\n", cwbuf);
-	cwbuf = (cwbuf + 1) % fbufs;
 
-	return count / (float)params.rate;
+	memset(screen, 0, sizeof(screen));
+
+	for (i=0;i<count;i++) {
+		float x = frames[cwbuf].points[i].x;
+		float y = frames[cwbuf].points[i].y;
+
+		int sx = (x+1)/2.0 * W;
+		int sy = (1-y)/2.0 * H;
+
+		if(frames[cwbuf].points[i].color)
+			screen[sy][sx]++;
+	}
+
+	printf("\x1b[H");
+
+	int sx, sy;
+	for (sy=0; sy<H; sy++) {
+		for(sx=0; sx<W; sx++) {
+			int v = screen[sy][sx];
+			if (v>7)
+				v = 7;
+			if (v<0)
+				v = 0;
+			char c = " .->+*%#"[v];
+			printf("%c", c);
+		}
+		printf("\n");
+	}
+	usleep(10000);
+	return 0.01;
 }
 
 void olLoadIdentity(void)

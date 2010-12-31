@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "libol.h"
+#include "ilda.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -59,48 +60,18 @@ int main (int argc, char *argv[])
 
 	int frames = 0;
 
+	IldaFile *ild = olLoadIlda("logo.ild");
+
 	while(1) {
-		olLoadIdentity3();
 		olLoadIdentity();
+		olScale(1.7,2.0);
+		olLoadIdentity3();
 		olPerspective(60, 1, 1, 100);
 		olTranslate3(0, 0, -3);
 
-		for(i=0; i<2; i++) {
-			olScale3(0.6, 0.6, 0.6);
+		olRotate3Y(time * M_PI * 0.8);
 
-			olRotate3Z(time * M_PI * 0.1);
-			olRotate3Y(time * M_PI * 0.8);
-			olRotate3X(time * M_PI * 0.73);
-
-			olBegin(OL_LINESTRIP);
-			olVertex3(-1, -1, -1, C_WHITE);
-			olVertex3( 1, -1, -1, C_WHITE);
-			olVertex3( 1,  1, -1, C_WHITE);
-			olVertex3(-1,  1, -1, C_WHITE);
-			olVertex3(-1, -1, -1, C_WHITE);
-			olVertex3(-1, -1,  1, C_WHITE);
-			olEnd();
-
-			olBegin(OL_LINESTRIP);
-			olVertex3( 1,  1,  1, C_WHITE);
-			olVertex3(-1,  1,  1, C_WHITE);
-			olVertex3(-1, -1,  1, C_WHITE);
-			olVertex3( 1, -1,  1, C_WHITE);
-			olVertex3( 1,  1,  1, C_WHITE);
-			olVertex3( 1,  1, -1, C_WHITE);
-			olEnd();
-
-			olBegin(OL_LINESTRIP);
-			olVertex3( 1, -1, -1, C_WHITE);
-			olVertex3( 1, -1,  1, C_WHITE);
-			olEnd();
-
-			olBegin(OL_LINESTRIP);
-			olVertex3(-1,  1,  1, C_WHITE);
-			olVertex3(-1,  1, -1, C_WHITE);
-			olEnd();
-
-		}
+		olDrawIlda3D(ild);
 
 		ftime = olRenderFrame(60);
 		frames++;

@@ -19,9 +19,6 @@
 include_directories (${CMAKE_SOURCE_DIR}/include)
 link_directories (${CMAKE_BINARY_DIR}/libol)
 
-add_executable(circlescope circlescope.c)
-target_link_libraries(circlescope ${JACK_LIBRARIES} m)
-
 add_executable(simple simple.c)
 target_link_libraries(simple openlase)
 
@@ -35,4 +32,8 @@ target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
 add_executable(harp harp.c)
 target_link_libraries(harp openlase)
 
+add_executable(rot rot.c)
+target_link_libraries(rot openlase)
+
 add_subdirectory(27c3_slides)
+

@@ -24,7 +24,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <jack/jack.h>
 #include <math.h>
 
 #include <linux/input.h>
@@ -224,7 +223,6 @@ int main (int argc, char *argv[])
 		eb1pos *= 2;
 		eb2pos *= 2;
 
-		printf("ebpos:%f %f\n", eb1pos, eb2pos);
 
 
 		olLoadIdentity();
@@ -308,7 +306,6 @@ int main (int argc, char *argv[])
 
 		frames++;
 		time += ftime;
-		printf("Frame time: %f, FPS:%f\n", ftime, frames/time);
 	}
 
 	olShutdown();

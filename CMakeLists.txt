@@ -22,12 +22,9 @@ cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
 
-find_package(Qt4 REQUIRED)
-find_package(JACK REQUIRED)
 
 set(CMAKE_C_FLAGS "-Wall -O3 -g")
 
 add_subdirectory (libol)
-add_subdirectory (output)
 add_subdirectory (tools)
 add_subdirectory (examples)

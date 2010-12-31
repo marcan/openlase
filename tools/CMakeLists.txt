@@ -19,8 +19,5 @@
 include_directories (${CMAKE_SOURCE_DIR}/include)
 link_directories (${CMAKE_BINARY_DIR}/libol)
 
-add_executable(playilda playilda.c)
-target_link_libraries(playilda ${JACK_LIBRARIES})
-
-add_executable(playvid playvid.c trace.c)
-target_link_libraries(playvid openlase avformat avcodec)
+#add_executable(playvid playvid.c trace.c)
+#target_link_libraries(playvid openlase avformat avcodec)

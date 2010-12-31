@@ -21,7 +21,7 @@ find_package(Threads)
 
 add_library (openlase libol.c text.c ilda.c ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
 find_library (PTHREAD pthread)
-target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
+target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py

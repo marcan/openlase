@@ -32,8 +32,13 @@ target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
 add_executable(harp harp.c)
 target_link_libraries(harp openlase)
 
-add_executable(rot rot.c)
+add_executable(rot rot.c ${CMAKE_CURRENT_BINARY_DIR}/cbase-logo.ild)
 target_link_libraries(rot openlase)
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cbase-logo.ild
+    DEPENDS ${CMAKE_SOURCE_DIR}/tools/svg2ild.py
+    MAIN_DEPENDENCY cbase-logo.svg
+    COMMAND python ${CMAKE_SOURCE_DIR}/tools/svg2ild.py -q ${CMAKE_CURRENT_SOURCE_DIR}/cbase-logo.svg ${CMAKE_CURRENT_BINARY_DIR}/cbase-logo.ild)
 
 add_subdirectory(27c3_slides)
 

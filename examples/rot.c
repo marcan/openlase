@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
 
 	int frames = 0;
 
-	IldaFile *ild = olLoadIlda("logo.ild");
+	IldaFile *ild = olLoadIlda("cbase-logo.ild");
 
 	while(1) {
 		olLoadIdentity();

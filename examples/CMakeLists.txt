@@ -34,3 +34,5 @@ target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
 
 add_executable(harp harp.c)
 target_link_libraries(harp openlase)
+
+add_subdirectory(27c3_slides)

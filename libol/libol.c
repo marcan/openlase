@@ -747,13 +747,15 @@ float olRenderFrame(int max_fps)
 					clinv = 0;
 					dclosest = distance;
 				}
-				dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - closest_to.x;
-				dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - closest_to.y;
-				distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
-				if(!closest || distance < dclosest) {
-					closest = &wframe.objects[i];
-					clinv = 1;
-					dclosest = distance;
+				if (!(params.render_flags & RENDER_NOREVERSE)) {
+					dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - closest_to.x;
+					dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - closest_to.y;
+					distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
+					if(!closest || distance < dclosest) {
+						closest = &wframe.objects[i];
+						clinv = 1;
+						dclosest = distance;
+					}
 				}
 			}
 			if (!closest)

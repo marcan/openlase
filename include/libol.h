@@ -39,6 +39,7 @@ enum {
 enum {
 	RENDER_GRAYSCALE = 1,
 	RENDER_NOREORDER = 2,
+	RENDER_NOREVERSE = 4,
 };
 
 typedef struct {

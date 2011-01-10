@@ -516,7 +516,12 @@ static void bezier_to(float x, float y, uint32_t color)
 
 static void point_to(float x, float y, uint32_t color)
 {
+	int i;
 	addpoint(x,y,color);
+	if (dstate.points == 0)
+		for (i=0; i<params.start_dwell; i++)
+			addpoint(x,y,color);
+
 	dstate.points++;
 	return;
 }

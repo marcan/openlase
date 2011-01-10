@@ -258,6 +258,7 @@ void usage(const char *argv0)
 	printf("-m INT    Minimum object size in samples\n");
 	printf("-S INT    Start wait in samples\n");
 	printf("-E INT    End wait in samples\n");
+	printf("-D INT    Start/end dwell in samples\n");
 	printf("-s FLOAT  Inverse off (inter-object) scan speed (in samples per screen width)\n");
 	printf("-p FLOAT  Snap distance in video pixels\n");
 	printf("-a FLOAT  Force aspect ratio\n");
@@ -285,6 +286,8 @@ int main (int argc, char *argv[])
 	params.snap = 1/120.0;
 	params.render_flags = RENDER_GRAYSCALE;
 	params.min_length = 4;
+	params.start_dwell = 2;
+	params.end_dwell = 2;
 
 	float snap_pix = 3;
 	float aspect = 0;
@@ -299,7 +302,7 @@ int main (int argc, char *argv[])
 
 	int optchar;
 
-	while ((optchar = getopt(argc, argv, "ht:b:w:B:W:O:d:m:S:E:s:p:a:r:R:o:v:")) != -1) {
+	while ((optchar = getopt(argc, argv, "ht:b:w:B:W:O:d:m:S:E:D:s:p:a:r:R:o:v:")) != -1) {
 		switch (optchar) {
 			case 'h':
 			case '?':
@@ -334,6 +337,10 @@ int main (int argc, char *argv[])
 				break;
 			case 'E':
 				params.end_wait = atoi(optarg);
+				break;
+			case 'D':
+				params.start_dwell = atoi(optarg);
+				params.end_dwell = atoi(optarg);
 				break;
 			case 's':
 				params.off_speed = 2.0f/atof(optarg);

@@ -1,6 +1,6 @@
 #         OpenLase - a realtime laser graphics toolkit
 #
-# Copyright (C) 2009-2010 Hector Martin "marcan" <hector@marcansoft.com>
+# Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,3 +24,14 @@ target_link_libraries(playilda ${JACK_LIBRARIES})
 
 add_executable(playvid playvid.c trace.c)
 target_link_libraries(playvid openlase avformat avcodec)
+
+include_directories (${CMAKE_SOURCE_DIR}/include)
+link_directories (${CMAKE_BINARY_DIR}/libol)
+
+find_package(OpenGL REQUIRED)
+find_package(GLUT REQUIRED)
+
+add_executable(simulator simulator.c)
+
+include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+target_link_libraries(simulator ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${JACK_LIBRARIES})

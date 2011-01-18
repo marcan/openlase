@@ -53,6 +53,8 @@ bufsample_t buffer[BUF_SAMPLES];
 
 int buf_widx = 0;
 
+float psize = 2;
+
 static int process (nframes_t nframes, void *arg)
 {
 	sample_t *i_x = (sample_t *) jack_port_get_buffer (in_x, nframes);
@@ -118,8 +120,8 @@ void draw_gl(void)
 	fno++;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
-	glLineWidth(2);
-	glPointSize(2);
+	glLineWidth(psize);
+	glPointSize(psize);
 
 	// horrid workaround for recordmydesktop/libtheora brokenness
 #if 0
@@ -211,6 +213,7 @@ void resize_gl(int width, int height)
 	glLoadIdentity();
 	glOrtho (-1, 1, -1, 1, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
+	psize = min/350.0;
 }
 
 void init_gl(int width, int height)

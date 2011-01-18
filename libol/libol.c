@@ -835,8 +835,13 @@ float olRenderFrame(int max_fps)
 		last_info.resampled_points = count;
 	}
 
-	float last_x = frames[cwbuf].points[count-1].x;
-	float last_y = frames[cwbuf].points[count-1].y;
+	float last_x, last_y;
+	if (count) {
+		last_x = frames[cwbuf].points[count-1].x;
+		last_y = frames[cwbuf].points[count-1].y;
+	} else {
+		last_x = last_y = 0;
+	}
 	while(count < min_points) {
 		frames[cwbuf].points[count].x = last_x;
 		frames[cwbuf].points[count].y = last_y;

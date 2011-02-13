@@ -618,7 +618,7 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			else:
 				ws = attrs['width']
 				hs = attrs['height']
-				for r in ('px','pt','mm','in','cm'):
+				for r in ('px','pt','mm','in','cm','%'):
 					hs = hs.replace(r,"")
 					ws = ws.replace(r,"")
 				self.width = float(ws)
@@ -659,6 +659,14 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			if self.defsdepth == 0 and self.isvisible(attrs):
 				cx, cy, r = [float(attrs[x]) for x in ('cx','cy','r')]
 				self.addCircle(cx, cy, r)
+			if 'transform' in attrs.keys():
+				self.popmatrix()
+		elif name == "ellipse":
+			if 'transform' in attrs.keys():
+				self.transform(attrs['transform'])
+			if self.defsdepth == 0 and self.isvisible(attrs):
+				cx, cy, rx, ry = [float(attrs[x]) for x in ('cx','cy','rx','ry')]
+				self.addEllipse(cx, cy, rx, ry)
 			if 'transform' in attrs.keys():
 				self.popmatrix()
 		elif name == 'g':
@@ -711,7 +719,7 @@ class SVGReader(xml.sax.handler.ContentHandler):
 		ds = re.split(r"[ \r\n\t]*([a-z]+\([^)]+\)|,)[ \r\n\t]*", data)
 		tokens = []
 		for v in ds:
-			if v == ',':
+			if v in ', \t':
 				continue
 			if v == '':
 				continue
@@ -725,7 +733,7 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			name,rest = t.split("(")
 			if rest[-1] != ")":
 				raise ValueError("Invalid SVG transform expression: %r (%r)"%(data,rest))
-			args = map(float,rest[:-1].split(","))
+			args = map(float,re.split(r'[, \t]+',rest[:-1]))
 			if name == 'matrix':
 				mat = self.mmul(mat, args)
 			elif name == 'translate':
@@ -784,6 +792,16 @@ class SVGReader(xml.sax.handler.ContentHandler):
 		path.add(PathBezier4((cx+r,cy), (cx+r,cy+cp), (cx+cp,cy+r), (cx,cy+r)))
 		path.add(PathBezier4((cx,cy+r), (cx-cp,cy+r), (cx-r,cy+cp), (cx-r,cy)))
 		path.add(PathBezier4((cx-r,cy), (cx-r,cy-cp), (cx-cp,cy-r), (cx,cy-r)))
+		path.transform(self.ts)
+		self.frame.add(path)
+	def addEllipse(self, cx, cy, rx, ry):
+		cpx = 0.55228475 * rx
+		cpy = 0.55228475 * ry
+		path = LaserPath()
+		path.add(PathBezier4((cx,cy-ry), (cx+cpx,cy-ry), (cx+rx,cy-cpy), (cx+rx,cy)))
+		path.add(PathBezier4((cx+rx,cy), (cx+rx,cy+cpy), (cx+cpx,cy+ry), (cx,cy+ry)))
+		path.add(PathBezier4((cx,cy+ry), (cx-cpx,cy+ry), (cx-rx,cy+cpy), (cx-rx,cy)))
+		path.add(PathBezier4((cx-rx,cy), (cx-rx,cy-cpy), (cx-cpx,cy-ry), (cx,cy-ry)))
 		path.transform(self.ts)
 		self.frame.add(path)
 	def isvisible(self, attrs):

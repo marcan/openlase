@@ -32,10 +32,7 @@ stuff like decimation and overdraw.
 
 If you're wondering about the switch() at the end: in order to find stuff to
 trace, it walks the image in a spiral from the outside in, to try to put the
-object start/end points near the edges of the screen (less visible). Yes, this
-is highly suboptimal for anything but closed objects since quite often it
-catches them in the middle and breaks them into two objects. I'm kind of hoping
-libol catches most of those and merges them, though. Maybe.
+object start/end points near the edges of the screen (less visible).
 */
 
 #include "libol.h"
@@ -52,16 +49,135 @@ libol catches most of those and merges them, though. Maybe.
 //#define DEBUG
 
 #ifdef DEBUG
-uint8_t dbg[640*480*16][3];
+static uint8_t dbg[640*480*16][3];
+static int pc = 0;
+static int tframe = 0;
 #endif
+
+static const int tdx[8] = { 1,  1,  0, -1, -1, -1,  0,  1 };
+static const int tdy[8] = { 0, -1, -1, -1,  0,  1,  1,  1 };
+
+static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int flag)
+{
+	int i;
+	int x = *cx;
+	int y = *cy;
+	int iters = 0;
+	int start = 1;
+	int div = 0;
+#ifdef DEBUG
+	if (decimate != -1) {
+		pc = pc + 47;
+		pc %= 160;
+	}
+#endif
+	int lidx = 0;
+	int dir = 0;
+	int bufx[OVERDRAW], bufy[OVERDRAW];
+
+	while (1)
+	{
+		int idx = y*s+x;
+		if (decimate != -1) {
+			if (div == 0) {
+				if (iters < OVERDRAW) {
+					bufx[iters] = x;
+					bufy[iters] = y;
+				}
+				olVertex(x, y, C_WHITE);
+				iters++;
+			}
+			div = (div+1)%decimate;
+		} else {
+			iters++;
+		}
+		buf[idx] &= ~flag;
+		if (start) {
+			// just pick any direction the first time
+			for (dir=0; dir<8; dir++) {
+				int dx = tdx[dir];
+				int dy = tdy[dir];
+				if (buf[idx+dx+s*dy] & flag) {
+					x += dx;
+					y += dy;
+					break;
+				}
+			}
+			if (dir >= 8)
+				break;
+		} else if (buf[2*idx-lidx] & flag) {
+			// can we keep going in the same direction?
+			x += tdx[dir];
+			y += tdy[dir];
+		} else {
+			// no, check for lowest angle path
+			int ddir;
+			for (ddir=1; ddir<=4; ddir++) {
+				int ndir = (dir + ddir) % 8;
+				if (buf[idx+tdx[ndir]+s*tdy[ndir]] & flag) {
+					dir = ndir;
+					x += tdx[ndir];
+					y += tdy[ndir];
+					break;
+				}
+				ndir = (8 + dir - ddir) % 8;
+				if (buf[idx+tdx[ndir]+s*tdy[ndir]] & flag) {
+					dir = ndir;
+					x += tdx[ndir];
+					y += tdy[ndir];
+					break;
+				}
+			}
+			if (ddir > 4) {
+				lidx = idx;
+				break;
+			}
+		}
+		if (!start) {
+			// when moving diagonally, clear out some adjacent pixels
+			// this deals with double-thickness diagonals
+			if (dir & 1) {
+				int adir = (dir + 1) % 8;
+				buf[idx+tdx[adir]+s*tdy[adir]] &= ~flag;
+				adir = (dir + 7) % 8;
+				buf[idx+tdx[adir]+s*tdy[adir]] &= ~flag;
+			}
+		}
+#ifdef DEBUG
+		if (decimate != -1) {
+			if (!start)
+				dbg[idx][2] = 96+pc;
+		}
+#endif
+		start = 0;
+		lidx = idx;
+	}
+#ifdef DEBUG
+/*
+	if (decimate != -1) {
+		dbg[lidx][0] = 255;
+		dbg[lidx][1] = 0;
+		dbg[lidx][2] = 0;
+	}
+*/
+#endif
+	if (decimate != -1 && iters) {
+		if (ABS(*cx-x) <= 2 && ABS(*cy-y) <= 2 && iters > 10) {
+			if (iters > OVERDRAW)
+				iters = OVERDRAW;
+			for (i=0; i<iters; i++)
+				olVertex(bufx[i], bufy[i], C_GREY((int)(255.0 * (OVERDRAW - 1 - i) / (float)OVERDRAW)));
+		}
+	}
+	*cx = x;
+	*cy = y;
+	return iters;
+}
 
 int trace(uint8_t *field, uint8_t *tmp, uint8_t thresh, int w, int h, int s, int decimate)
 {
-	int x, y, cx, cy, px, py, lx, ly, i;
-	int iters = 0;
+	int x, y;
 	int objects = 0;
-
-	int sx[OVERDRAW], sy[OVERDRAW];
 
 	memset(tmp, 0, s*h);
 #ifdef DEBUG
@@ -92,187 +208,75 @@ int trace(uint8_t *field, uint8_t *tmp, uint8_t thresh, int w, int h, int s, int
 		}
 	}
 
+	int scandir = 0;
 	int total = h*w;
-	int dir = 0;
 	int minx = 0, miny = 0;
 	int maxx = w-1, maxy = h-1;
-	int ldir = 0;
-	int lsdir = 0;
 
-	int div = 0;
-	int dpcnt = 0;
-
-	int start = 0;
-
-	int pc = 0;
-
-	px = 0;
-	py = 0;
+	x = 0;
+	y = 0;
 	while (total--)
 	{
-		if (tmp[py*s+px]) {
-			x = lx = cx = px;
-			y = ly = cy = py;
-			iters = 0;
+		int flg = 1;
+		while (tmp[y*s+x] & 128) {
+			int tx = x, ty = y;
+			if (flg != 64)
+				flg <<= 1;
+			trace_pixels(tmp, s, -1, &tx, &ty, flg);
+#ifdef DEBUG
+			int sx = tx, sy = ty;
+#endif
 			olBegin(OL_POINTS);
-			start = 1;
-			pc = pc + 37;
-			pc %= 128;
-			int lidx = y*s+x;
-			while (1)
-			{
-				int idx = y*s+x;
-#ifdef DEBUG
-				dbg[idx][1] = 128+pc;
-#endif
-				int ddir = (ldir - lsdir + 8) % 8;
-				if (ddir > 4)
-					ddir = 8 - ddir;
-				if(div==0) {
-					if (iters < OVERDRAW) {
-						sx[iters] = x;
-						sy[iters] = y;
-					}
-					olVertex(x, y, C_WHITE);
-					/*if (ddir>3) {
-						olVertex(x, y, C_WHITE);
-						dpcnt++;
-					}*/
-					iters++;
-				}
-				div = (div+1)%decimate;
-				lsdir = ldir;
-				tmp[idx] = 0;
-				//printf("Dlt: %d\n", idx-lidx);
-				//dbg[idx][2] = 0;
-				if (tmp[2*idx-lidx]) {
-					x = 2*x-lx;
-					y = 2*y-ly;
-#ifdef DEBUG
-					dbg[2*idx-lidx][2] += 64;
-#endif
-				} else if ((ldir == 4 || ldir == 6) && tmp[idx-s-1]) {
-					y--; x--;
-					ldir = 5;
-				} else if ((ldir == 2 || ldir == 4) && tmp[idx-s+1]) {
-					y--; x++;
-					ldir = 3;
-				} else if ((ldir == 6 || ldir == 0) && tmp[idx+s-1]) {
-					y++; x--;
-					ldir = 7;
-				} else if ((ldir == 0 || ldir == 2) && tmp[idx+s+1]) {
-					y++; x++;
-					ldir = 1;
-				} else if ((ldir == 5 || ldir == 7) && tmp[idx-1]) {
-					x--;
-					ldir = 6;
-				} else if ((ldir == 1 || ldir == 3) && tmp[idx+1]) {
-					x++;
-					ldir = 2;
-				} else if ((ldir == 3 || ldir == 5) && tmp[idx-s]) {
-					y--;
-					ldir = 4;
-				} else if ((ldir == 1 || ldir == 7) && tmp[idx+s]) {
-					y++;
-					ldir = 0;
-				} else if (tmp[idx-s-1]) {
-					y--; x--;
-					ldir = 5;
-				} else if (tmp[idx-s+1]) {
-					y--; x++;
-					ldir = 3;
-				} else if (tmp[idx+s-1]) {
-					y++; x--;
-					ldir = 7;
-				} else if (tmp[idx+s+1]) {
-					y++; x++;
-					ldir = 1;
-				} else if (tmp[idx-1]) {
-					x--;
-					ldir = 6;
-				} else if (tmp[idx+1]) {
-					x++;
-					ldir = 2;
-				} else if (tmp[idx-s]) {
-					y--;
-					ldir = 4;
-				} else if (tmp[idx+s]) {
-					y++;
-					ldir = 0;
-				} else {
-					break;
-				}
-				if (!start) {
-					if (ldir & 1) {
-						tmp[idx-1] = 0;
-						tmp[idx+1] = 0;
-						tmp[idx-s] = 0;
-						tmp[idx+s] = 0;
-					} else if (ldir == 0) {
-						tmp[idx-1-s] = 0;
-						tmp[idx+1-s] = 0;
-					} else if (ldir == 2) {
-						tmp[idx-1-s] = 0;
-						tmp[idx-1+s] = 0;
-					} else if (ldir == 4) {
-						tmp[idx-1+s] = 0;
-						tmp[idx+1+s] = 0;
-					} else if (ldir == 6) {
-						tmp[idx+1-s] = 0;
-						tmp[idx+1+s] = 0;
-					}
-				}
-				start = 0;
-				tmp[y*s+x] = 255;
-				lidx = idx;
-				lx = x;
-				ly = y;
-			}
-#ifdef DEBUG
-			dbg[py*s+px][0] = 255;
-			dbg[py*s+px][1] = 255;
-			dbg[py*s+px][2] = 255;
-#endif
-			if (iters) {
+			if (trace_pixels(tmp, s, decimate, &tx, &ty, 255))
 				objects++;
-				if (ABS(cx-x) <= 1 && ABS(cy-y) <= 1 && iters > 10) {
-					if (iters > OVERDRAW)
-						iters = OVERDRAW;
-					for (i=0; i<iters; i++)
-						olVertex(sx[i], sy[i], C_GREY((int)(255.0 * (OVERDRAW - 1 - i) / (float)OVERDRAW)));
-				}
-			}
 			olEnd();
+
+#ifdef DEBUG
+			dbg[y*s+x][0] = 255;
+			dbg[y*s+x][1] = 255;
+			dbg[y*s+x][2] = 0;
+
+			dbg[sy*s+sx][0] = 0;
+			dbg[sy*s+sx][1] = 255;
+			dbg[sy*s+sx][2] = 255;
+
+			dbg[ty*s+tx][0] = 255;
+			dbg[ty*s+tx][1] = 0;
+			dbg[ty*s+tx][2] = 0;
+			printf("%d: %d,%d %d,%d %d,%d\n", tframe, x, y, sx, sy, tx, ty);
+#endif
 		}
-		switch(dir) {
+		switch(scandir) {
 			case 0:
-				px++;
-				if (px > maxx) {
-					px--; py++; maxx--; dir++;
+				x++;
+				if (x > maxx) {
+					x--; y++; maxx--; scandir++;
 				}
 				break;
 			case 1:
-				py++;
-				if (py > maxy) {
-					py--; px--; maxy--; dir++;
+				y++;
+				if (y > maxy) {
+					y--; x--; maxy--; scandir++;
 				}
 				break;
 			case 2:
-				px--;
-				if (px < minx) {
-					px++; py--; minx++; dir++;
+				x--;
+				if (x < minx) {
+					x++; y--; minx++; scandir++;
 				}
 				break;
 			case 3:
-				py--;
-				if (py < miny) {
-					py++; px++; miny++; dir=0;
+				y--;
+				if (y < miny) {
+					y++; x++; miny++; scandir=0;
 				}
 				break;
 		}
 	}
 #ifdef DEBUG
-	FILE *f = fopen("dump.bin","wb");
+	char name[64];
+	sprintf(name, "dump%05d.bin", tframe++);
+	FILE *f = fopen(name,"wb");
 	fwrite(dbg, h, s*3, f);
 	fclose(f);
 #endif

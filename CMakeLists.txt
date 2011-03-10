@@ -16,14 +16,20 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-PROJECT(openlase)
+project(openlase)
 
 cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
 
-find_package(Qt4 REQUIRED)
+find_package(Threads REQUIRED)
 find_package(JACK REQUIRED)
+find_package(Qt4)
+find_package(FFmpeg)
+find_package(OpenGL)
+find_package(GLUT)
+find_package(ALSA)
+find_package(Curses)
 
 set(CMAKE_C_FLAGS "-Wall -O3 -g")
 

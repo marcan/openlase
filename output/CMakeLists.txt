@@ -16,13 +16,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-include(${QT_USE_FILE})
+if(QT4_FOUND)
+  include(${QT_USE_FILE})
 
-QT4_WRAP_UI(output_UIS_H output_settings.ui)
-QT4_AUTOMOC(output_settings.cpp output.cpp)
+  QT4_WRAP_UI(output_UIS_H output_settings.ui)
+  QT4_AUTOMOC(output_settings.cpp output.cpp)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(output output.cpp output_settings.cpp ${output_UIS_H})
-target_link_libraries(output ${JACK_LIBRARIES} ${QT_LIBRARIES})
-
+  add_executable(output output.cpp output_settings.cpp ${output_UIS_H})
+  target_link_libraries(output ${JACK_LIBRARIES} ${QT_LIBRARIES})
+else()
+  message(STATUS "Will NOT build output (Qt4 missing)")
+endif()

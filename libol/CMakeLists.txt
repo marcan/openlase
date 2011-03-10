@@ -17,10 +17,8 @@
 #
 
 include_directories (${CMAKE_SOURCE_DIR}/include)
-find_package(Threads)
 
 add_library (openlase libol.c text.c ilda.c ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
-find_library (PTHREAD pthread)
 target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c

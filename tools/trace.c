@@ -44,7 +44,7 @@ object start/end points near the edges of the screen (less visible).
 
 #define ABS(a) ((a)<0?(-(a)):(a))
 
-#define OVERDRAW 8
+#define OVERDRAW 6
 
 //#define DEBUG
 
@@ -56,6 +56,9 @@ static int tframe = 0;
 
 static const int tdx[8] = { 1,  1,  0, -1, -1, -1,  0,  1 };
 static const int tdy[8] = { 0, -1, -1, -1,  0,  1,  1,  1 };
+
+static const int tdx2[16] = { 2,  2,  2,  1,  0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2 };
+static const int tdy2[16] = { 0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2,  2,  2,  2,  1 };
 
 static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int flag)
 {
@@ -111,9 +114,9 @@ static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int
 			y += tdy[dir];
 		} else {
 			// no, check for lowest angle path
-			int ddir;
+			int ddir, ndir;
 			for (ddir=1; ddir<=4; ddir++) {
-				int ndir = (dir + ddir) % 8;
+				ndir = (dir + ddir) % 8;
 				if (buf[idx+tdx[ndir]+s*tdy[ndir]] & flag) {
 					dir = ndir;
 					x += tdx[ndir];
@@ -129,8 +132,27 @@ static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int
 				}
 			}
 			if (ddir > 4) {
-				lidx = idx;
-				break;
+				// now try the distance-2 neighborhood, can we skip a pixel?
+				for (ddir=0; ddir<=8; ddir++) {
+					ndir = (2*dir + ddir) % 16;
+					if (buf[idx+tdx2[ndir]+s*tdy2[ndir]] & flag) {
+						dir = (dir + ddir/2) % 8;
+						x += tdx2[ndir];
+						y += tdy2[ndir];
+						break;
+					}
+					ndir = (16 + 2*dir - ddir) % 16;
+					if (buf[idx+tdx2[ndir]+s*tdy2[ndir]] & flag) {
+						dir = (8 + dir - ddir/2) % 8;
+						x += tdx2[ndir];
+						y += tdy2[ndir];
+						break;
+					}
+				}
+				if (ddir > 8) {
+					lidx = idx;
+					break;
+				}
 			}
 		}
 		if (!start) {

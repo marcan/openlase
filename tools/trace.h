@@ -20,6 +20,40 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TRACE_H
 #define TRACE_H
 
-int trace(uint8_t *field, uint8_t *tmp, uint8_t thresh, int width, int height, int stride, int decimate);
+typedef struct OLTraceCtx OLTraceCtx;
+
+typedef enum {
+	OL_TRACE_THRESHOLD,
+	OL_TRACE_CANNY
+} OLTraceMode;
+
+typedef struct {
+	OLTraceMode mode;
+	unsigned int width, height;
+	float sigma;
+	unsigned int threshold;
+} OLTraceParams;
+
+typedef struct {
+	uint32_t x, y;
+} OLTracePoint;
+
+typedef struct {
+	unsigned int count;
+	OLTracePoint *points;
+} OLTraceObject;
+
+typedef struct {
+	unsigned int count;
+	OLTraceObject *objects;
+} OLTraceResult;
+
+int olTraceInit(OLTraceCtx **ctx, OLTraceParams *params);
+int olTraceReInit(OLTraceCtx **ctx, OLTraceParams *params);
+
+int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *result);
+void olTraceFree(OLTraceResult *result);
+
+void olTraceDeinit(OLTraceCtx *ctx);
 
 #endif

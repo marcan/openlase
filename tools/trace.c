@@ -39,12 +39,28 @@ object start/end points near the edges of the screen (less visible).
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "trace.h"
 
+struct OLTraceCtx {
+	OLTraceParams p;
+	uint16_t *tracebuf;
+
+	OLTracePoint *sb;
+	OLTracePoint *sbp;
+	OLTracePoint *sb_end;
+	unsigned int sb_size;
+
+	OLTracePoint *pb;
+	OLTracePoint *pbp;
+	OLTracePoint *pb_end;
+	unsigned int pb_size;
+};
+
 #define ABS(a) ((a)<0?(-(a)):(a))
 
-#define OVERDRAW 6
+#define OVERDRAW 8
 
 //#define DEBUG
 
@@ -60,14 +76,40 @@ static const int tdy[8] = { 0, -1, -1, -1,  0,  1,  1,  1 };
 static const int tdx2[16] = { 2,  2,  2,  1,  0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2 };
 static const int tdy2[16] = { 0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2,  2,  2,  2,  1 };
 
-static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int flag)
+static inline void add_bufpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
 {
-	int i;
-	int x = *cx;
-	int y = *cy;
+	ctx->pbp->x = x;
+	ctx->pbp->y = y;
+	ctx->pbp++;
+	if (ctx->pbp == ctx->pb_end) {
+		int cur = ctx->pbp - ctx->pb;
+		ctx->pb_size *= 2;
+		ctx->pb = realloc(ctx->pb, ctx->pb_size * sizeof(*ctx->pb));
+		ctx->pbp = ctx->pb + cur;
+		ctx->pb_end = ctx->pb + ctx->pb_size;
+	}
+}
+
+static inline void add_startpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
+{
+	ctx->sbp->x = x;
+	ctx->sbp->y = y;
+	ctx->sbp++;
+	if (ctx->sbp == ctx->sb_end) {
+		int cur = ctx->sbp - ctx->sb;
+		ctx->sb_size *= 2;
+		ctx->sb = realloc(ctx->sb, ctx->sb_size * sizeof(*ctx->sb));
+		ctx->sbp = ctx->sb + cur;
+		ctx->sb_end = ctx->sb + ctx->sb_size;
+	}
+}
+
+static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int s, int output, uint32_t *cx, uint32_t *cy, uint16_t flag)
+{
+	unsigned int x = *cx;
+	unsigned int y = *cy;
 	int iters = 0;
 	int start = 1;
-	int div = 0;
 #ifdef DEBUG
 	if (decimate != -1) {
 		pc = pc + 47;
@@ -76,24 +118,12 @@ static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int
 #endif
 	int lidx = 0;
 	int dir = 0;
-	int bufx[OVERDRAW], bufy[OVERDRAW];
-
 	while (1)
 	{
 		int idx = y*s+x;
-		if (decimate != -1) {
-			if (div == 0) {
-				if (iters < OVERDRAW) {
-					bufx[iters] = x;
-					bufy[iters] = y;
-				}
-				olVertex(x, y, C_WHITE);
-				iters++;
-			}
-			div = (div+1)%decimate;
-		} else {
-			iters++;
-		}
+		if (output)
+			add_bufpoint(ctx, x, y);
+		iters++;
 		buf[idx] &= ~flag;
 		if (start) {
 			// just pick any direction the first time
@@ -166,143 +196,188 @@ static int trace_pixels(uint8_t *buf, int s, int decimate, int *cx, int *cy, int
 			}
 		}
 #ifdef DEBUG
-		if (decimate != -1) {
-			if (!start)
-				dbg[idx][2] = 96+pc;
-		}
+		if (!start)
+			dbg[idx][2] = 96+pc;
 #endif
 		start = 0;
 		lidx = idx;
 	}
 #ifdef DEBUG
 /*
-	if (decimate != -1) {
-		dbg[lidx][0] = 255;
-		dbg[lidx][1] = 0;
-		dbg[lidx][2] = 0;
-	}
+	dbg[lidx][0] = 255;
+	dbg[lidx][1] = 0;
+	dbg[lidx][2] = 0;
 */
 #endif
-	if (decimate != -1 && iters) {
-		if (ABS(*cx-x) <= 2 && ABS(*cy-y) <= 2 && iters > 10) {
-			if (iters > OVERDRAW)
-				iters = OVERDRAW;
-			for (i=0; i<iters; i++)
-				olVertex(bufx[i], bufy[i], C_GREY((int)(255.0 * (OVERDRAW - 1 - i) / (float)OVERDRAW)));
-		}
-	}
 	*cx = x;
 	*cy = y;
 	return iters;
 }
 
-int trace(uint8_t *field, uint8_t *tmp, uint8_t thresh, int w, int h, int s, int decimate)
+int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
 {
-	int x, y;
-	int objects = 0;
+	OLTraceCtx *ctx = malloc(sizeof(OLTraceCtx));
 
-	memset(tmp, 0, s*h);
-#ifdef DEBUG
-	memset(dbg, 0, 3*s*h);
-#endif
+	ctx->p = *params;
+	ctx->tracebuf = malloc(ctx->p.width * ctx->p.height * sizeof(*ctx->tracebuf));
+
+	ctx->sb_size = ctx->p.width * 16;
+	ctx->sb = malloc(ctx->sb_size * sizeof(*ctx->sb));
+	ctx->sbp = ctx->sb;
+	ctx->sb_end = ctx->sb + ctx->sb_size;
+
+	ctx->pb_size = ctx->p.width * 16;
+	ctx->pb = malloc(ctx->pb_size * sizeof(*ctx->pb));
+	ctx->pbp = ctx->pb;
+	ctx->pb_end = ctx->pb + ctx->pb_size;
+
+
+	*pctx = ctx;
+	return 0;
+}
+int olTraceReInit(OLTraceCtx **ctx, OLTraceParams *params)
+{
+	(*ctx)->p = *params;
+	return 0;
+}
+
+void olTraceFree(OLTraceResult *result)
+{
+	if (!result)
+		return;
+	if (result->objects) {
+		if (result->objects[0].points)
+			free(result->objects[0].points);
+		free(result->objects);
+	}
+}
+
+
+void olTraceDeinit(OLTraceCtx *ctx)
+{
+}
+
+static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)
+{
+	unsigned int thresh = ctx->p.threshold;
+	uint32_t x, y, w, h;
+	w = ctx->p.width;
+	h = ctx->p.height;
 
 	for (y=2; y<h-2; y++) {
 		for (x=2; x<w-2;x++) {
-			int idx = y*s+x;
-			if (field[idx] > thresh && (!(field[idx-s] > thresh)
-			                         || !(field[idx-1] > thresh))) {
-				tmp[idx] = 255;
+			int idx = y*stride+x;
+			int oidx = y*w+x;
+			if (src[idx] > thresh && (!(src[idx-stride] > thresh)
+			                         || !(src[idx-1] > thresh))) {
+				ctx->tracebuf[oidx] = 0xFFFF;
+				add_startpoint(ctx, x, y);
 #ifdef DEBUG
-				dbg[idx][0] = 64;
-				dbg[idx][1] = 64;
-				dbg[idx][2] = 64;
+				dbg[oidx][0] = 64;
+				dbg[oidx][1] = 64;
+				dbg[oidx][2] = 64;
 #endif
 			}
-			if (field[idx] <= thresh && (!(field[idx-s] <= thresh)
-			                         || !(field[idx-1] <= thresh))) {
-				tmp[idx] = 255;
+			if (src[idx] <= thresh && (!(src[idx-stride] <= thresh)
+			                         || !(src[idx-1] <= thresh))) {
+				ctx->tracebuf[oidx] = 0xFFFF;
+				add_startpoint(ctx, x, y);
 #ifdef DEBUG
-				dbg[idx][0] = 64;
-				dbg[idx][1] = 64;
-				dbg[idx][2] = 64;
+				dbg[oidx][0] = 64;
+				dbg[oidx][1] = 64;
+				dbg[oidx][2] = 64;
 #endif
 			}
 		}
 	}
+}
 
-	int scandir = 0;
-	int total = h*w;
-	int minx = 0, miny = 0;
-	int maxx = w-1, maxy = h-1;
+int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *result)
+{
+	uint32_t x, y;
+	int i;
+	unsigned int objects = 0;
+	int w = ctx->p.width;
+	int h = ctx->p.height;
 
-	x = 0;
-	y = 0;
-	while (total--)
-	{
+	memset(ctx->tracebuf, 0, w*h*2);
+#ifdef DEBUG
+	memset(dbg, 0, 3*w*h);
+#endif
+
+	ctx->sbp = ctx->sb;
+	ctx->pbp = ctx->pb;
+
+	find_edges_thresh(ctx, src, stride);
+
+	OLTracePoint *ps = ctx->sb;
+	while (ps != ctx->sbp) {
+		x = ps->x;
+		y = ps->y;
+		ps++;
 		int flg = 1;
-		while (tmp[y*s+x] & 128) {
-			int tx = x, ty = y;
+		while (ctx->tracebuf[y*w+x] & 0x8000) {
+			uint32_t tx = x, ty = y;
 			if (flg != 64)
 				flg <<= 1;
-			trace_pixels(tmp, s, -1, &tx, &ty, flg);
+			trace_pixels(ctx, ctx->tracebuf, w, 0, &tx, &ty, flg);
 #ifdef DEBUG
-			int sx = tx, sy = ty;
+			uint32_t sx = tx, sy = ty;
 #endif
-			olBegin(OL_POINTS);
-			if (trace_pixels(tmp, s, decimate, &tx, &ty, 255))
+			if (trace_pixels(ctx, ctx->tracebuf, w, 1, &tx, &ty, 0xFFFF)) {
+				ctx->pbp[-1].x |= 1<<31;
 				objects++;
-			olEnd();
+			}
 
 #ifdef DEBUG
-			dbg[y*s+x][0] = 255;
-			dbg[y*s+x][1] = 255;
-			dbg[y*s+x][2] = 0;
+			dbg[y*w+x][0] = 255;
+			dbg[y*w+x][1] = 255;
+			dbg[y*w+x][2] = 0;
 
-			dbg[sy*s+sx][0] = 0;
-			dbg[sy*s+sx][1] = 255;
-			dbg[sy*s+sx][2] = 255;
+			dbg[sy*w+sx][0] = 0;
+			dbg[sy*w+sx][1] = 255;
+			dbg[sy*w+sx][2] = 255;
 
-			dbg[ty*s+tx][0] = 255;
-			dbg[ty*s+tx][1] = 0;
-			dbg[ty*s+tx][2] = 0;
+			dbg[ty*w+tx][0] = 255;
+			dbg[ty*w+tx][1] = 0;
+			dbg[ty*w+tx][2] = 0;
 			printf("%d: %d,%d %d,%d %d,%d\n", tframe, x, y, sx, sy, tx, ty);
 #endif
-		}
-		switch(scandir) {
-			case 0:
-				x++;
-				if (x > maxx) {
-					x--; y++; maxx--; scandir++;
-				}
-				break;
-			case 1:
-				y++;
-				if (y > maxy) {
-					y--; x--; maxy--; scandir++;
-				}
-				break;
-			case 2:
-				x--;
-				if (x < minx) {
-					x++; y--; minx++; scandir++;
-				}
-				break;
-			case 3:
-				y--;
-				if (y < miny) {
-					y++; x++; miny++; scandir=0;
-				}
-				break;
 		}
 	}
 #ifdef DEBUG
 	char name[64];
 	sprintf(name, "dump%05d.bin", tframe++);
 	FILE *f = fopen(name,"wb");
-	fwrite(dbg, h, s*3, f);
+	fwrite(dbg, h, w*3, f);
 	fclose(f);
 #endif
 	//printf("Dup'd: %d\n", dpcnt);
+
+	result->count = objects;
+	if (objects == 0) {
+		result->objects = NULL;
+	} else {
+		OLTracePoint *p, *q;
+		q = malloc((ctx->pbp - ctx->pb) * sizeof(*q));
+		result->objects = malloc(objects * sizeof(*result->objects));
+		OLTraceObject *o = result->objects;
+		o->count = 0;
+		o->points = q;
+		for (p = ctx->pb; p != ctx->pbp; p++) {
+			q->x = p->x & ~(1<<31);
+			q->y = p->y;
+			q++;
+			o->count++;
+			if (p->x & (1<<31)) {
+				o++;
+				if ((p+1) != ctx->pbp) {
+					o->count = 0;
+					o->points = q;
+				}
+			}
+		}
+	}
+
 	return objects;
 }
-

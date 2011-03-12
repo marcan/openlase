@@ -426,7 +426,20 @@ int main (int argc, char *argv[])
 
 	OLFrameInfo info;
 
-	void *tmp = malloc(pCodecCtx->width * pCodecCtx->height*2);
+	OLTraceParams tparams = {
+		.mode = OL_TRACE_THRESHOLD,
+		.width = pCodecCtx->width,
+		.height = pCodecCtx->height,
+		.sigma = 0
+	};
+
+	OLTraceCtx *trace_ctx;
+
+	OLTraceResult result;
+
+	memset(&result, 0, sizeof(result));
+
+	olTraceInit(&trace_ctx, &tparams);
 
 	while(GetNextFrame(pFormatCtx, pCodecCtx, videoStream, &frame)) {
 		if (inf == 0)
@@ -439,36 +452,51 @@ int main (int argc, char *argv[])
 		}
 		vidtime += frametime;
 
+		int thresh;
+		int obj;
+		int bsum = 0;
+		int c;
+		for (c=edge_off; c<(pCodecCtx->width-edge_off); c++) {
+			bsum += frame->data[0][c+edge_off*frame->linesize[0]];
+			bsum += frame->data[0][c+(pCodecCtx->height-edge_off-1)*frame->linesize[0]];
+		}
+		for (c=edge_off; c<(pCodecCtx->height-edge_off); c++) {
+			bsum += frame->data[0][edge_off+c*frame->linesize[0]];
+			bsum += frame->data[0][(c+1)*frame->linesize[0]-1-edge_off];
+		}
+		bsum /= (2*(pCodecCtx->width+pCodecCtx->height));
+		if (bg_white == -1)
+			bg_white = bsum > 128;
+		if (bg_white && bsum < sw_dark)
+			bg_white = 0;
+		if (!bg_white && bsum > sw_light)
+			bg_white = 1;
+
+		if (bg_white)
+			thresh = thresh_light;
+		else
+			thresh = thresh_dark;
+
+		tparams.threshold = thresh;
+		olTraceReInit(&trace_ctx, &tparams);
+		olTraceFree(&result);
+		obj = olTrace(trace_ctx, frame->data[0], frame->linesize[0], &result);
+
 		do {
-			int thresh;
-			int obj;
-			int bsum = 0;
-			int c;
-			for (c=edge_off; c<(pCodecCtx->width-edge_off); c++) {
-				bsum += frame->data[0][c+edge_off*frame->linesize[0]];
-				bsum += frame->data[0][c+(pCodecCtx->height-edge_off-1)*frame->linesize[0]];
+			int i, j;
+			for (i = 0; i < result.count; i++) {
+				OLTraceObject *o = &result.objects[i];
+				olBegin(OL_POINTS);
+				OLTracePoint *p = o->points;
+				for (j = 0; j < o->count; j++) {
+					if (j % decimate == 0)
+						olVertex(p->x, p->y, C_WHITE);
+					p++;
+				}
+				olEnd();
 			}
-			for (c=edge_off; c<(pCodecCtx->height-edge_off); c++) {
-				bsum += frame->data[0][edge_off+c*frame->linesize[0]];
-				bsum += frame->data[0][(c+1)*frame->linesize[0]-1-edge_off];
-			}
-			bsum /= (2*(pCodecCtx->width+pCodecCtx->height));
-			if (bg_white == -1)
-				bg_white = bsum > 128;
-			if (bg_white && bsum < sw_dark)
-				bg_white = 0;
-			if (!bg_white && bsum > sw_light)
-				bg_white = 1;
 
-			if (bg_white)
-				thresh = thresh_light;
-			else
-				thresh = thresh_dark;
-
-			obj = trace(frame->data[0], tmp, thresh,
-						pCodecCtx->width, pCodecCtx->height, frame->linesize[0], decimate);
-
-			ftime = olRenderFrame(100);
+			ftime = olRenderFrame(200);
 			olGetFrameInfo(&info);
 			frames++;
 			time += ftime;
@@ -485,7 +513,7 @@ int main (int argc, char *argv[])
 	}
 
 	for(i=0;i<FRAMES_BUF;i++)
-		olRenderFrame(100);
+		olRenderFrame(200);
 
 	olShutdown();
 	av_deinit();

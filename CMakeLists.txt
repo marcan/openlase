@@ -22,6 +22,12 @@ cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(BITS 64)
+else()
+  set(BITS 32)
+endif()
+
 find_package(Threads REQUIRED)
 find_package(JACK REQUIRED)
 find_package(Qt4)

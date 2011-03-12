@@ -58,10 +58,6 @@ struct OLTraceCtx {
 	unsigned int pb_size;
 };
 
-#define ABS(a) ((a)<0?(-(a)):(a))
-
-#define OVERDRAW 8
-
 //#define DEBUG
 
 #ifdef DEBUG
@@ -76,13 +72,13 @@ static const int tdy[8] = { 0, -1, -1, -1,  0,  1,  1,  1 };
 static const int tdx2[16] = { 2,  2,  2,  1,  0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2 };
 static const int tdy2[16] = { 0, -1, -2, -2, -2, -2, -2, -1,  0,  1,  2,  2,  2,  2,  2,  1 };
 
-static inline void add_bufpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
+static inline void add_bufpoint(OLTraceCtx *ctx, icoord x, icoord y)
 {
 	ctx->pbp->x = x;
 	ctx->pbp->y = y;
 	ctx->pbp++;
 	if (ctx->pbp == ctx->pb_end) {
-		int cur = ctx->pbp - ctx->pb;
+		unsigned int cur = ctx->pbp - ctx->pb;
 		ctx->pb_size *= 2;
 		ctx->pb = realloc(ctx->pb, ctx->pb_size * sizeof(*ctx->pb));
 		ctx->pbp = ctx->pb + cur;
@@ -90,13 +86,13 @@ static inline void add_bufpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
 	}
 }
 
-static inline void add_startpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
+static inline void add_startpoint(OLTraceCtx *ctx, icoord x, icoord y)
 {
 	ctx->sbp->x = x;
 	ctx->sbp->y = y;
 	ctx->sbp++;
 	if (ctx->sbp == ctx->sb_end) {
-		int cur = ctx->sbp - ctx->sb;
+		unsigned int cur = ctx->sbp - ctx->sb;
 		ctx->sb_size *= 2;
 		ctx->sb = realloc(ctx->sb, ctx->sb_size * sizeof(*ctx->sb));
 		ctx->sbp = ctx->sb + cur;
@@ -104,11 +100,12 @@ static inline void add_startpoint(OLTraceCtx *ctx, uint32_t x, uint32_t y)
 	}
 }
 
-static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int s, int output, uint32_t *cx, uint32_t *cy, uint16_t flag)
+static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int output, icoord *cx, icoord *cy, uint16_t flag)
 {
-	unsigned int x = *cx;
-	unsigned int y = *cy;
-	int iters = 0;
+	icoord x = *cx;
+	icoord y = *cy;
+	icoord s = ctx->p.width;
+	unsigned int iters = 0;
 	int start = 1;
 #ifdef DEBUG
 	if (decimate != -1) {
@@ -116,11 +113,11 @@ static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int s, int output, uint3
 		pc %= 160;
 	}
 #endif
-	int lidx = 0;
-	int dir = 0;
+	unsigned int lidx = 0;
+	unsigned int dir = 0;
 	while (1)
 	{
-		int idx = y*s+x;
+		unsigned int idx = y*s+x;
 		if (output)
 			add_bufpoint(ctx, x, y);
 		iters++;
@@ -189,7 +186,7 @@ static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int s, int output, uint3
 			// when moving diagonally, clear out some adjacent pixels
 			// this deals with double-thickness diagonals
 			if (dir & 1) {
-				int adir = (dir + 1) % 8;
+				unsigned int adir = (dir + 1) % 8;
 				buf[idx+tdx[adir]+s*tdy[adir]] &= ~flag;
 				adir = (dir + 7) % 8;
 				buf[idx+tdx[adir]+s*tdy[adir]] &= ~flag;
@@ -260,7 +257,7 @@ void olTraceDeinit(OLTraceCtx *ctx)
 static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)
 {
 	unsigned int thresh = ctx->p.threshold;
-	uint32_t x, y, w, h;
+	icoord x, y, w, h;
 	w = ctx->p.width;
 	h = ctx->p.height;
 
@@ -294,11 +291,10 @@ static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride
 
 int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *result)
 {
-	uint32_t x, y;
-	int i;
+	icoord x, y;
 	unsigned int objects = 0;
-	int w = ctx->p.width;
-	int h = ctx->p.height;
+	icoord w = ctx->p.width;
+	icoord h = ctx->p.height;
 
 	memset(ctx->tracebuf, 0, w*h*2);
 #ifdef DEBUG
@@ -315,16 +311,16 @@ int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *r
 		x = ps->x;
 		y = ps->y;
 		ps++;
-		int flg = 1;
+		uint16_t flg = 1;
 		while (ctx->tracebuf[y*w+x] & 0x8000) {
-			uint32_t tx = x, ty = y;
+			icoord tx = x, ty = y;
 			if (flg != 64)
 				flg <<= 1;
-			trace_pixels(ctx, ctx->tracebuf, w, 0, &tx, &ty, flg);
+			trace_pixels(ctx, ctx->tracebuf, 0, &tx, &ty, flg);
 #ifdef DEBUG
-			uint32_t sx = tx, sy = ty;
+			icoord sx = tx, sy = ty;
 #endif
-			if (trace_pixels(ctx, ctx->tracebuf, w, 1, &tx, &ty, 0xFFFF)) {
+			if (trace_pixels(ctx, ctx->tracebuf, 1, &tx, &ty, 0xFFFF)) {
 				ctx->pbp[-1].x |= 1<<31;
 				objects++;
 			}

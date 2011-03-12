@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct OLTraceCtx OLTraceCtx;
 
+typedef uint32_t icoord;
+
 typedef enum {
 	OL_TRACE_THRESHOLD,
 	OL_TRACE_CANNY
@@ -29,13 +31,13 @@ typedef enum {
 
 typedef struct {
 	OLTraceMode mode;
-	unsigned int width, height;
+	icoord width, height;
 	float sigma;
 	unsigned int threshold;
 } OLTraceParams;
 
 typedef struct {
-	uint32_t x, y;
+	icoord x, y;
 } OLTracePoint;
 
 typedef struct {
@@ -51,7 +53,7 @@ typedef struct {
 int olTraceInit(OLTraceCtx **ctx, OLTraceParams *params);
 int olTraceReInit(OLTraceCtx **ctx, OLTraceParams *params);
 
-int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *result);
+int olTrace(OLTraceCtx *ctx, uint8_t *src, icoord stride, OLTraceResult *result);
 void olTraceFree(OLTraceResult *result);
 
 void olTraceDeinit(OLTraceCtx *ctx);

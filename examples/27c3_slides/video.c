@@ -174,7 +174,7 @@ void videotracer_render(void *ctx, float time, float state)
 	else
 		thresh = cfg->thresh_dark;
 
-	obj = trace(frame->data[0], tmp, thresh, width, height, frame->linesize[0], cfg->decimate);
+	//obj = trace(frame->data[0], tmp, thresh, width, height, frame->linesize[0], cfg->decimate);
 
 	outframes++;
 	olLog("Video stats: Drift %7.4f, In %4d, Out %4d, Drop %4d, Thr %3d, Bg %3d\n",

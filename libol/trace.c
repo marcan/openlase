@@ -40,11 +40,19 @@ object start/end points near the edges of the screen (less visible).
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 #include "trace.h"
 
 struct OLTraceCtx {
 	OLTraceParams p;
+	icoord aw, ah;
+	uint16_t *k;
+	unsigned int ksize, kpad;
+	uint8_t *bibuf, *btbuf, *sibuf;
+	int16_t *stbuf, *sxbuf, *sybuf;
+	uint32_t *smbuf;
+
 	uint16_t *tracebuf;
 
 	OLTracePoint *sb;
@@ -65,6 +73,250 @@ static uint8_t dbg[640*480*16][3];
 static int pc = 0;
 static int tframe = 0;
 #endif
+
+void ol_conv_sse2(uint8_t *src, uint8_t *dst, size_t w, size_t h, uint16_t *kern, size_t ksize);
+void ol_sobel_sse2_gx_v(uint8_t *src, int16_t *dst, size_t w, size_t h);
+void ol_sobel_sse2_gx_h(int16_t *src, int16_t *dst, size_t w, size_t h);
+void ol_sobel_sse2_gy_v(uint8_t *src, int16_t *dst, size_t w, size_t h);
+void ol_sobel_sse2_gy_h(int16_t *src, int16_t *dst, size_t w, size_t h);
+void ol_transpose_2x8x8(uint8_t *p, size_t stride);
+void ol_transpose_8x8w(int16_t *p, size_t stride);
+
+typedef void (*sobel_v_fn)(uint8_t *src, int16_t *dst, size_t w, size_t h);
+typedef void (*sobel_h_fn)(int16_t *src, int16_t *dst, size_t w, size_t h);
+
+static void alloc_bufs(OLTraceCtx *ctx)
+{
+	ctx->aw = (ctx->p.width+15) & ~15;
+	ctx->ah = (ctx->p.height+15) & ~15;
+
+	ctx->ksize = ((int)round(ctx->p.sigma * 6 + 1)) | 1;
+
+	if (ctx->ksize <= 1) {
+		ctx->ksize = 0;
+		ctx->k = NULL;
+		ctx->kpad = 0;
+		ctx->bibuf = NULL;
+		ctx->btbuf = NULL;
+		ctx->sibuf = NULL;
+	} else {
+	    ctx->k = memalign(64, 16 * ctx->ksize);
+		ctx->kpad = ctx->ksize / 2;
+
+		ctx->bibuf = memalign(64, ctx->aw * (ctx->ah + 2 * ctx->kpad));
+		ctx->btbuf = memalign(64, ctx->ah * (ctx->aw + 2 * ctx->kpad));
+		ctx->sibuf = memalign(64, ctx->aw * (ctx->ah + 2));
+	}
+
+	if (ctx->p.mode == OL_TRACE_CANNY) {
+		if (!ctx->sibuf)
+			ctx->sibuf = memalign(64, ctx->aw * (ctx->ah + 2));
+		ctx->stbuf = memalign(64, sizeof(*ctx->stbuf) * ctx->ah * (ctx->aw + 2));
+		ctx->sxbuf = memalign(64, sizeof(*ctx->sxbuf) * ctx->aw * ctx->ah);
+		ctx->sybuf = memalign(64, sizeof(*ctx->sybuf) * ctx->aw * ctx->ah);
+		ctx->smbuf = memalign(64, sizeof(*ctx->smbuf) * ctx->aw * ctx->ah);
+	} else {
+		ctx->stbuf = NULL;
+		ctx->sxbuf = NULL;
+		ctx->sybuf = NULL;
+		ctx->smbuf = NULL;
+	}
+
+	ctx->tracebuf = malloc(ctx->p.width * ctx->p.height * sizeof(*ctx->tracebuf));
+	memset(ctx->tracebuf, 0, ctx->p.width * ctx->p.height * sizeof(*ctx->tracebuf));	
+
+	ctx->sb_size = ctx->p.width * 16;
+	ctx->sb = malloc(ctx->sb_size * sizeof(*ctx->sb));
+	ctx->sbp = ctx->sb;
+	ctx->sb_end = ctx->sb + ctx->sb_size;
+
+	ctx->pb_size = ctx->p.width * 16;
+	ctx->pb = malloc(ctx->pb_size * sizeof(*ctx->pb));
+	ctx->pbp = ctx->pb;
+	ctx->pb_end = ctx->pb + ctx->pb_size;
+}
+
+static void free_bufs(OLTraceCtx *ctx)
+{
+	if (ctx->tracebuf)
+		free(ctx->tracebuf);
+	if (ctx->sb)
+		free(ctx->sb);
+	if (ctx->pb)
+		free(ctx->pb);
+	if (ctx->k)
+		free(ctx->k);
+	if (ctx->bibuf)
+		free(ctx->bibuf);
+	if (ctx->btbuf)
+		free(ctx->btbuf);
+	if (ctx->sibuf)
+		free(ctx->sibuf);
+	if (ctx->stbuf)
+		free(ctx->stbuf);
+	if (ctx->sxbuf)
+		free(ctx->sxbuf);
+	if (ctx->sybuf)
+		free(ctx->sybuf);
+	if (ctx->smbuf)
+		free(ctx->smbuf);
+}
+
+static void init_blur(OLTraceCtx *ctx)
+{
+	if (ctx->ksize) {
+		double scale = -0.5/(ctx->p.sigma*ctx->p.sigma);
+
+		int i, j;
+		double *pk = malloc(sizeof(double) * ctx->ksize);
+		double sum = 0;
+		for (i = 0; i < ctx->ksize; i++) {
+			double x = i - (ctx->ksize-1)*0.5;
+			pk[i] = exp(scale*x*x);
+			sum += pk[i];
+		}
+
+		sum = 1/sum;
+
+		for (i = 0; i < ctx->ksize; i++) {
+			uint32_t val;
+			val = 0x10000 * pk[i] * sum;
+			if (val > 0xffff)
+				val = 0xffff;
+			for (j = 0; j < 8; j++) {
+				ctx->k[i*8+j] = val;
+			}
+		}
+
+		free(pk);
+	}
+}
+
+void perform_blur(OLTraceCtx *ctx, uint8_t *src, icoord stride)
+{
+	unsigned int x, y, z;
+	uint8_t *p, *q;
+
+	p = ctx->bibuf;
+	for (y = 0; y < ctx->kpad; y++) {
+		memcpy(p, src, ctx->p.width);
+		p += ctx->aw;
+	}
+	for (y = 0; y < ctx->p.height; y++) {
+		memcpy(p, src, ctx->p.width);
+		src += stride;
+		p += ctx->aw;
+	}
+	src -= stride;
+	for (y = 0; y < ctx->kpad; y++) {
+		memcpy(p, src, ctx->p.width);
+		p += ctx->aw;
+	}
+
+	p = ctx->bibuf;
+	q = ctx->btbuf + ctx->ah * ctx->kpad;
+	for (x = 0; x < ctx->aw; x += 16) {
+		uint8_t *r = p;
+		uint8_t *s = q;
+		for (y = 0; y < ctx->p.height; y += 8) {
+			uint8_t *t = s;
+			for (z = 0; z < 4; z++) {
+				ol_conv_sse2(r, t, ctx->aw, ctx->ah, ctx->k, ctx->ksize);
+				r += 2*ctx->aw;
+				t += 2*ctx->ah;
+			}
+			if (y&8) {
+				ol_transpose_2x8x8(s-8, ctx->ah);
+				ol_transpose_2x8x8(t-8, ctx->ah);
+			}
+			s += 8;
+		}
+		p += 16;
+		q += 16 * ctx->ah;
+	}
+	p = ctx->btbuf;
+	q = ctx->btbuf + ctx->ah * ctx->kpad;
+	for (y = 0; y < ctx->kpad; y++) {
+		memcpy(p, q, ctx->ah);
+		p += ctx->ah;
+	}
+	p = ctx->btbuf + ctx->ah * (ctx->kpad + ctx->p.width);
+	q = p - ctx->ah;
+	for (y = 0; y < ctx->kpad; y++) {
+		memcpy(p, q, ctx->ah);
+		p += ctx->ah;
+	}
+
+	p = ctx->btbuf;
+	q = ctx->sibuf + ctx->aw;
+	for (x = 0; x < ctx->ah; x += 16) {
+		uint8_t *r = p;
+		uint8_t *s = q;
+		for (y = 0; y < ctx->p.width; y += 8) {
+			uint8_t *t = s;
+			for (z = 0; z < 4; z++) {
+				ol_conv_sse2(r, t, ctx->ah, ctx->aw, ctx->k, ctx->ksize);
+				r += 2*ctx->ah;
+				t += 2*ctx->aw;
+			}
+			if (y&8) {
+				ol_transpose_2x8x8(s-8, ctx->aw);
+				ol_transpose_2x8x8(t-8, ctx->aw);
+			}
+			s += 8;
+		}
+		p += 16;
+		q += 16 * ctx->aw;
+	}
+}
+
+static void perform_sobel(OLTraceCtx *ctx, sobel_v_fn vfn, sobel_h_fn hfn, int16_t *obuf)
+{
+	icoord x, y;
+	uint8_t *bp;
+	int16_t *p, *q;
+
+	bp = ctx->sibuf + ctx->aw;
+	memcpy(ctx->sibuf, bp, ctx->aw);
+	bp += ctx->aw * ctx->p.height;
+	memcpy(bp, bp - ctx->aw, ctx->aw);
+
+	bp = ctx->sibuf;
+	q = ctx->stbuf + ctx->ah;
+	for (x = 0; x < ctx->aw; x += 16) {
+		uint8_t *r = bp;
+		int16_t *s = q;
+		for (y = 0; y < ctx->p.height; y += 8) {
+			vfn(r, s, ctx->aw, ctx->ah);
+			ol_transpose_8x8w(s, 2*ctx->ah);
+			ol_transpose_8x8w(s + 8*ctx->ah, 2*ctx->ah);
+			r += 8*ctx->aw;
+			s += 8;
+		}
+		bp += 16;
+		q += 16 * ctx->ah;
+	}
+	p = ctx->stbuf + ctx->ah;
+	memcpy(ctx->stbuf, p, 2 * ctx->ah);
+	p += ctx->ah * ctx->p.width;
+	memcpy(p, p - ctx->ah, 2 * ctx->ah);
+
+	p = ctx->stbuf;
+	q = obuf;
+	for (x = 0; x < ctx->ah; x += 16) {
+		int16_t *r = p;
+		int16_t *s = q;
+		for (y = 0; y < ctx->p.width; y += 8) {
+			hfn(r, s, ctx->ah, ctx->aw);
+			ol_transpose_8x8w(s, 2*ctx->aw);
+			ol_transpose_8x8w(s + 8*ctx->aw, 2*ctx->aw);
+			r += 8*ctx->ah;
+			s += 8;
+		}
+		p += 16;
+		q += 16 * ctx->aw;
+	}
+}
 
 static const int tdx[8] = { 1,  1,  0, -1, -1, -1,  0,  1 };
 static const int tdy[8] = { 0, -1, -1, -1,  0,  1,  1,  1 };
@@ -211,78 +463,6 @@ static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int output, icoord *cx, 
 	return iters;
 }
 
-static void alloc_bufs(OLTraceCtx *ctx)
-{
-	ctx->tracebuf = malloc(ctx->p.width * ctx->p.height * sizeof(*ctx->tracebuf));
-
-	ctx->sb_size = ctx->p.width * 16;
-	ctx->sb = malloc(ctx->sb_size * sizeof(*ctx->sb));
-	ctx->sbp = ctx->sb;
-	ctx->sb_end = ctx->sb + ctx->sb_size;
-
-	ctx->pb_size = ctx->p.width * 16;
-	ctx->pb = malloc(ctx->pb_size * sizeof(*ctx->pb));
-	ctx->pbp = ctx->pb;
-	ctx->pb_end = ctx->pb + ctx->pb_size;
-}
-
-static void free_bufs(OLTraceCtx *ctx)
-{
-	if (ctx->tracebuf)
-		free(ctx->tracebuf);
-	if (ctx->sb)
-		free(ctx->sb);
-	if (ctx->pb)
-		free(ctx->pb);
-}
-
-int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
-{
-	OLTraceCtx *ctx = malloc(sizeof(OLTraceCtx));
-
-	ctx->p = *params;
-
-	alloc_bufs(ctx);
-
-	*pctx = ctx;
-	return 0;
-}
-
-int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
-{
-	if (ctx->p.mode != params->mode ||
-		ctx->p.width != params->width ||
-		ctx->p.height != params->height)
-	{
-		free_bufs(ctx);
-		ctx->p = *params;
-		alloc_bufs(ctx);
-	} else {
-		ctx->p = *params;
-	}
-	return 0;
-}
-
-void olTraceFree(OLTraceResult *result)
-{
-	if (!result)
-		return;
-	if (result->objects) {
-		if (result->objects[0].points)
-			free(result->objects[0].points);
-		free(result->objects);
-	}
-}
-
-void olTraceDeinit(OLTraceCtx *ctx)
-{
-	if (!ctx)
-		return;
-
-	free_bufs(ctx);
-	free(ctx);
-}
-
 static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)
 {
 	unsigned int thresh = ctx->p.threshold;
@@ -318,6 +498,102 @@ static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride
 	}
 }
 
+#define ABS(x) (((x)<0)?-(x):(x))
+
+static void find_edges_canny(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)
+{
+	icoord x, y;
+	
+	unsigned int high_t = ctx->p.threshold;
+	unsigned int low_t = ctx->p.threshold2;
+	if (low_t == 0)
+		low_t = high_t;
+	if (low_t > high_t) {
+		unsigned int tmp = low_t;
+		low_t = high_t;
+		high_t = tmp;
+	}
+	
+	if (src != ctx->sibuf) {
+		uint8_t *p = ctx->sibuf + ctx->aw;
+		for (y = 0; y < ctx->p.height; y++) {
+			memcpy(p, src, ctx->p.width);
+			src += stride;
+			p += ctx->aw;
+		}
+	}
+
+	perform_sobel(ctx, ol_sobel_sse2_gx_v, ol_sobel_sse2_gx_h, ctx->sxbuf);
+	perform_sobel(ctx, ol_sobel_sse2_gy_v, ol_sobel_sse2_gy_h, ctx->sybuf);
+
+	uint32_t *pm = ctx->smbuf;
+	int16_t *px = ctx->sxbuf;
+	int16_t *py = ctx->sybuf;
+	unsigned int count = ctx->aw * ctx->p.height;
+
+	while (count--) {
+		*pm++ = ABS(*px) + ABS(*py);
+		px++;
+		py++;
+	}
+
+#define TAN45 0.41421356
+#define ITAN45 ((int32_t)(TAN45*0x10000))
+
+	int s = ctx->aw;
+
+	for (y = 2; y < (ctx->p.height-2); y++) {
+		uint16_t *pt = ctx->tracebuf + y*ctx->p.width + 2;
+		px = ctx->sxbuf + y*ctx->aw + 2;
+		py = ctx->sybuf + y*ctx->aw + 2;
+		pm = ctx->smbuf + y*ctx->aw + 2;
+		for (x = 1; x < (ctx->p.width-2); x++) {
+			uint32_t gm = *pm;
+			if (gm > low_t)  {
+				int16_t gx = *px;
+				int16_t gy = *py;
+				int16_t sign = gx ^ gy;
+				gx = ABS(gx);
+				gy = ABS(gy);
+				int32_t kgy = ITAN45*gy;
+				if ((gx<<16) < kgy) {
+					// horizontal edge [-]
+					if (gm > pm[-s] && gm > pm[s]) {
+						*pt = 0xffff;
+						if (gm > high_t)
+							add_startpoint(ctx, x, y);
+					}
+				} else if ((gx<<16) > (kgy+(gy<<17))) {
+					// vertical edge [|]
+					if (gm > pm[-1] && gm > pm[1]) {
+						*pt = 0xffff;
+						if (gm > high_t)
+							add_startpoint(ctx, x, y);
+					}
+				} else if (sign < 0) {
+					// diagonal edge [\]
+					if (gm > pm[1-s] && gm > pm[s-1]) {
+						*pt = 0xffff;
+						if (gm > high_t)
+							add_startpoint(ctx, x, y);
+					}
+				} else {
+					// diagonal edge [/]
+					if (gm > pm[-1-s] && gm > pm[s+1]) {
+						*pt = 0xffff;
+						if (gm > high_t)
+							add_startpoint(ctx, x, y);
+					}
+				}
+			}
+			px++;
+			py++;
+			pm++;
+			pt++;
+		}
+	}
+}
+
 int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *result)
 {
 	icoord x, y;
@@ -333,7 +609,20 @@ int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *r
 	ctx->sbp = ctx->sb;
 	ctx->pbp = ctx->pb;
 
-	find_edges_thresh(ctx, src, stride);
+	uint8_t *pbuf = src;
+	if (ctx->ksize) {
+		perform_blur(ctx, pbuf, stride);
+		pbuf = ctx->sibuf;
+		stride = ctx->aw;
+	}
+	switch (ctx->p.mode) {
+		case OL_TRACE_THRESHOLD:
+			find_edges_thresh(ctx, pbuf, stride);
+			break;
+		case OL_TRACE_CANNY:
+			find_edges_canny(ctx, pbuf, stride);
+			break;
+	}
 
 	OLTracePoint *ps = ctx->sb;
 	while (ps != ctx->sbp) {
@@ -377,7 +666,6 @@ int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *r
 	fwrite(dbg, h, w*3, f);
 	fclose(f);
 #endif
-	//printf("Dup'd: %d\n", dpcnt);
 
 	result->count = objects;
 	if (objects == 0) {
@@ -405,4 +693,56 @@ int olTrace(OLTraceCtx *ctx, uint8_t *src, unsigned int stride, OLTraceResult *r
 	}
 
 	return objects;
+}
+
+
+int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
+{
+	OLTraceCtx *ctx = malloc(sizeof(OLTraceCtx));
+
+	ctx->p = *params;
+
+	alloc_bufs(ctx);
+	init_blur(ctx);
+
+	*pctx = ctx;
+	return 0;
+}
+
+int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
+{
+	unsigned int new_ksize = ((unsigned int)round(params->sigma * 6 + 1)) | 1;
+
+	if (ctx->p.mode != params->mode ||
+		ctx->p.width != params->width ||
+		ctx->p.height != params->height ||
+		ctx->ksize != new_ksize)
+	{
+		free_bufs(ctx);
+		ctx->p = *params;
+		alloc_bufs(ctx);
+	} else {
+		ctx->p = *params;
+	}
+	return 0;
+}
+
+void olTraceFree(OLTraceResult *result)
+{
+	if (!result)
+		return;
+	if (result->objects) {
+		if (result->objects[0].points)
+			free(result->objects[0].points);
+		free(result->objects);
+	}
+}
+
+void olTraceDeinit(OLTraceCtx *ctx)
+{
+	if (!ctx)
+		return;
+
+	free_bufs(ctx);
+	free(ctx);
 }

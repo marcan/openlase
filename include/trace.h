@@ -34,6 +34,7 @@ typedef struct {
 	icoord width, height;
 	float sigma;
 	unsigned int threshold;
+	unsigned int threshold2;
 } OLTraceParams;
 
 typedef struct {

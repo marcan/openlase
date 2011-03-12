@@ -248,9 +248,11 @@ void usage(const char *argv0)
 {
 	printf("Usage: %s [options] inputfile\n\n", argv0);
 	printf("Options:\n");
+	printf("-c        Use Canny edge detector instead of thresholder\n");
 	printf("-t INT    Tracing threshold\n");
 	printf("-b INT    Tracing threshold for dark-background (black) scenes\n");
 	printf("-w INT    Tracing threshold for light-background (white) scenes\n");
+	printf("-T INT    Second tracing threshold (canny)\n");
 	printf("-B INT    Average edge value at which the scene is considered dark\n");
 	printf("-W INT    Average edge value at which the scene is considered light\n");
 	printf("-O INT    Edge offset\n");
@@ -259,6 +261,7 @@ void usage(const char *argv0)
 	printf("-S INT    Start wait in samples\n");
 	printf("-E INT    End wait in samples\n");
 	printf("-D INT    Start/end dwell in samples\n");
+	printf("-g FLOAT  Gaussian blur sigma\n");
 	printf("-s FLOAT  Inverse off (inter-object) scan speed (in samples per screen width)\n");
 	printf("-p FLOAT  Snap distance in video pixels\n");
 	printf("-a FLOAT  Force aspect ratio\n");
@@ -302,14 +305,27 @@ int main (int argc, char *argv[])
 
 	int optchar;
 
-	while ((optchar = getopt(argc, argv, "ht:b:w:B:W:O:d:m:S:E:D:s:p:a:r:R:o:v:")) != -1) {
+	OLTraceParams tparams = {
+		.mode = OL_TRACE_THRESHOLD,
+		.sigma = 0,
+		.threshold2 = 50
+	};
+
+	while ((optchar = getopt(argc, argv, "hct:T:b:w:B:W:O:d:m:S:E:D:g:s:p:a:r:R:o:v:")) != -1) {
 		switch (optchar) {
 			case 'h':
 			case '?':
 				usage(argv[0]);
 				return 0;
+			case 'c':
+				tparams.mode = OL_TRACE_CANNY;
+				tparams.sigma = 1;
+				break;
 			case 't':
 				thresh_dark = thresh_light = atoi(optarg);
+				break;
+			case 'T':
+				tparams.threshold2 = atoi(optarg);
 				break;
 			case 'b':
 				thresh_dark = atoi(optarg);
@@ -341,6 +357,9 @@ int main (int argc, char *argv[])
 			case 'D':
 				params.start_dwell = atoi(optarg);
 				params.end_dwell = atoi(optarg);
+				break;
+			case 'g':
+				tparams.sigma = atof(optarg);
 				break;
 			case 's':
 				params.off_speed = 2.0f/atof(optarg);
@@ -426,19 +445,14 @@ int main (int argc, char *argv[])
 
 	OLFrameInfo info;
 
-	OLTraceParams tparams = {
-		.mode = OL_TRACE_THRESHOLD,
-		.width = pCodecCtx->width,
-		.height = pCodecCtx->height,
-		.sigma = 0
-	};
-
 	OLTraceCtx *trace_ctx;
 
 	OLTraceResult result;
 
 	memset(&result, 0, sizeof(result));
 
+	tparams.width = pCodecCtx->width,
+	tparams.height = pCodecCtx->height,
 	olTraceInit(&trace_ctx, &tparams);
 
 	while(GetNextFrame(pFormatCtx, pCodecCtx, videoStream, &frame)) {

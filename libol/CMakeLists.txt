@@ -18,7 +18,8 @@
 
 include_directories (${CMAKE_SOURCE_DIR}/include)
 
-add_library (openlase SHARED libol.c text.c ilda.c trace.c ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
+enable_language(ASM_YASM)
+add_library (openlase SHARED libol.c text.c ilda.c trace.c imgproc_sse2.asm ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
 target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c

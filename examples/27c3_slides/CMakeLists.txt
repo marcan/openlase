@@ -21,7 +21,6 @@ if(CURSES_FOUND AND FFMPEG_FOUND)
 
   add_executable(slides
     main.c 3ddemos.c static.c metaballs.c circlescope.c avstream.c video.c pong.c
-    ${CMAKE_SOURCE_DIR}/tools/trace.c
 
     ${CMAKE_CURRENT_BINARY_DIR}/openlase-logo.ild
     ${CMAKE_CURRENT_BINARY_DIR}/27c3-logo.ild

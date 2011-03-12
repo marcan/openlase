@@ -23,7 +23,7 @@ add_executable(playilda playilda.c)
 target_link_libraries(playilda ${JACK_LIBRARIES})
 
 if(FFMPEG_FOUND)
-  add_executable(playvid playvid.c trace.c)
+  add_executable(playvid playvid.c)
   target_link_libraries(playvid openlase ${FFMPEG_LIBRARIES})
 else()
   message(STATUS "Will NOT build playvid (FFmpeg missing)")

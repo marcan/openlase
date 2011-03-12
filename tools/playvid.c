@@ -478,7 +478,7 @@ int main (int argc, char *argv[])
 			thresh = thresh_dark;
 
 		tparams.threshold = thresh;
-		olTraceReInit(&trace_ctx, &tparams);
+		olTraceReInit(trace_ctx, &tparams);
 		olTraceFree(&result);
 		obj = olTrace(trace_ctx, frame->data[0], frame->linesize[0], &result);
 
@@ -511,6 +511,8 @@ int main (int argc, char *argv[])
 			printf("\n");
 		} while ((time+frametime) < vidtime);
 	}
+
+	olTraceDeinit(trace_ctx);
 
 	for(i=0;i<FRAMES_BUF;i++)
 		olRenderFrame(200);

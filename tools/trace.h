@@ -51,7 +51,7 @@ typedef struct {
 } OLTraceResult;
 
 int olTraceInit(OLTraceCtx **ctx, OLTraceParams *params);
-int olTraceReInit(OLTraceCtx **ctx, OLTraceParams *params);
+int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params);
 
 int olTrace(OLTraceCtx *ctx, uint8_t *src, icoord stride, OLTraceResult *result);
 void olTraceFree(OLTraceResult *result);

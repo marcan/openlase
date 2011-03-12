@@ -211,11 +211,8 @@ static int trace_pixels(OLTraceCtx *ctx, uint16_t *buf, int output, icoord *cx, 
 	return iters;
 }
 
-int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
+static void alloc_bufs(OLTraceCtx *ctx)
 {
-	OLTraceCtx *ctx = malloc(sizeof(OLTraceCtx));
-
-	ctx->p = *params;
 	ctx->tracebuf = malloc(ctx->p.width * ctx->p.height * sizeof(*ctx->tracebuf));
 
 	ctx->sb_size = ctx->p.width * 16;
@@ -227,14 +224,42 @@ int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
 	ctx->pb = malloc(ctx->pb_size * sizeof(*ctx->pb));
 	ctx->pbp = ctx->pb;
 	ctx->pb_end = ctx->pb + ctx->pb_size;
+}
 
+static void free_bufs(OLTraceCtx *ctx)
+{
+	if (ctx->tracebuf)
+		free(ctx->tracebuf);
+	if (ctx->sb)
+		free(ctx->sb);
+	if (ctx->pb)
+		free(ctx->pb);
+}
+
+int olTraceInit(OLTraceCtx **pctx, OLTraceParams *params)
+{
+	OLTraceCtx *ctx = malloc(sizeof(OLTraceCtx));
+
+	ctx->p = *params;
+
+	alloc_bufs(ctx);
 
 	*pctx = ctx;
 	return 0;
 }
-int olTraceReInit(OLTraceCtx **ctx, OLTraceParams *params)
+
+int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
 {
-	(*ctx)->p = *params;
+	if (ctx->p.mode != params->mode ||
+		ctx->p.width != params->width ||
+		ctx->p.height != params->height)
+	{
+		free_bufs(ctx);
+		ctx->p = *params;
+		alloc_bufs(ctx);
+	} else {
+		ctx->p = *params;
+	}
 	return 0;
 }
 
@@ -249,9 +274,13 @@ void olTraceFree(OLTraceResult *result)
 	}
 }
 
-
 void olTraceDeinit(OLTraceCtx *ctx)
 {
+	if (!ctx)
+		return;
+
+	free_bufs(ctx);
+	free(ctx);
 }
 
 static void find_edges_thresh(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)

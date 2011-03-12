@@ -31,7 +31,11 @@ find_package(GLUT)
 find_package(ALSA)
 find_package(Curses)
 
-set(CMAKE_C_FLAGS "-Wall -O3 -g")
+if(CMAKE_C_FLAGS STREQUAL "")
+  set(CMAKE_C_FLAGS "-O3 -g")
+endif()
+
+add_definitions(-Wall)
 
 add_subdirectory (libol)
 add_subdirectory (output)

@@ -547,7 +547,7 @@ static void find_edges_canny(OLTraceCtx *ctx, uint8_t *src, unsigned int stride)
 		px = ctx->sxbuf + y*ctx->aw + 2;
 		py = ctx->sybuf + y*ctx->aw + 2;
 		pm = ctx->smbuf + y*ctx->aw + 2;
-		for (x = 1; x < (ctx->p.width-2); x++) {
+		for (x = 2; x < (ctx->p.width-2); x++) {
 			uint32_t gm = *pm;
 			if (gm > low_t)  {
 				int16_t gx = *px;

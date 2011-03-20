@@ -426,7 +426,11 @@ for id, x, y, w, h in handler.rects:
 output += "\nstatic const FontChar font_chars[256] = {\n"
 
 for chrval, width, sym in cdefs:
-	output += "\t['%s'] = {%8.4f, %s},\n"%(chr(chrval),width,sym)
+	if chrval < 0x7f and chrval != 0x27:
+		cv = "'%s'"%chr(chrval)
+	else:
+		cv = "0x%02x"%chrval
+	output += "\t[%s] = {%8.4f, %s},\n"%(cv,width,sym)
 
 output += "};\n\n"
 

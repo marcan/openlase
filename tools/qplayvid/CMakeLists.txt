@@ -16,25 +16,15 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-include_directories (${CMAKE_SOURCE_DIR}/include)
-link_directories (${CMAKE_BINARY_DIR}/libol)
+if(QT4_FOUND AND FFMPEG_FOUND)
+  include(${QT_USE_FILE})
 
-add_executable(playilda playilda.c)
-target_link_libraries(playilda ${JACK_LIBRARIES})
+  QT4_AUTOMOC(qplayvid_gui.cpp qplayvid.cpp)
 
-if(FFMPEG_FOUND)
-  add_executable(playvid playvid.c)
-  target_link_libraries(playvid openlase ${FFMPEG_LIBRARIES})
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+  add_executable(qplayvid qplayvid.c qplayvid_gui.cpp)
+  target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${QT_LIBRARIES})
 else()
-  message(STATUS "Will NOT build playvid (FFmpeg missing)")
+  message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg missing)")
 endif()
-
-if(OPENGL_FOUND AND GLUT_FOUND)
-  add_executable(simulator simulator.c)
-  include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-  target_link_libraries(simulator m ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${JACK_LIBRARIES})
-else()
-  message(STATUS "Will NOT build simulator (OpenGL or GLUT missing)")
-endif()
-
-add_subdirectory(qplayvid)

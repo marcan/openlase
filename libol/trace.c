@@ -724,6 +724,7 @@ int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
 	} else {
 		ctx->p = *params;
 	}
+	init_blur(ctx);
 	return 0;
 }
 

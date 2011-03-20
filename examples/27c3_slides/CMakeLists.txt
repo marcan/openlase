@@ -35,7 +35,7 @@ if(CURSES_FOUND AND FFMPEG_FOUND)
       DEPENDS ${CMAKE_SOURCE_DIR}/tools/svg2ild.py
       MAIN_DEPENDENCY ${NAME}.svg
       DEPENDS ${NAME}.svg ${NAME}.cfg
-      COMMAND python ${CMAKE_SOURCE_DIR}/tools/svg2ild.py -q ${ARGN} -cfg ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cfg ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.svg ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.ild)
+      COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/svg2ild.py -q ${ARGN} -cfg ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.cfg ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.svg ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.ild)
   endfunction()
 
   svg2ild(openlase-logo -noopt)

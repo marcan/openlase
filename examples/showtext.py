@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #         OpenLase - a realtime laser graphics toolkit
 #
 # Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
@@ -14,38 +15,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-#
 
-project(openlase)
+import pylase as ol
 
-cmake_minimum_required(VERSION 2.6)
+import sys
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
+if ol.init(10) < 0:
+	sys.exit(1)
+params = ol.RenderParams()
+params.render_flags = ol.RENDER_NOREORDER | ol.RENDER_GRAYSCALE
+params.on_speed = 2/120.0
+params.off_speed = 2/30.0
+params.flatness = 0.000001
+ol.setRenderParams(params)
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(BITS 64)
-else()
-  set(BITS 32)
-endif()
+lines = sys.argv[1:]
 
-find_package(Threads REQUIRED)
-find_package(JACK REQUIRED)
-find_package(PythonInterp REQUIRED)
-find_package(Qt4)
-find_package(FFmpeg)
-find_package(OpenGL)
-find_package(GLUT)
-find_package(ALSA)
-find_package(Curses)
+while True:
+	lc = len(lines)
 
-if(CMAKE_C_FLAGS STREQUAL "")
-  set(CMAKE_C_FLAGS "-O3 -g")
-endif()
+	font = ol.getDefaultFont()
+	yoff = (lc/2.0) * 0.3
 
-add_definitions(-Wall)
+	for i,line in enumerate(lines):
+		w = ol.getStringWidth(font, 0.3, line)
+		ol.drawString(font, (-w/2,yoff-i*0.3), 0.3, ol.C_WHITE, line)
 
-add_subdirectory (libol)
-add_subdirectory (output)
-add_subdirectory (tools)
-add_subdirectory (python)
-add_subdirectory (examples)
+	ftime = ol.renderFrame(60)

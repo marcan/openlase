@@ -672,11 +672,11 @@ void *display_thread(void *arg)
 		return NULL;
 	}
 
-	float aspect = av_q2d(ctx->v_stream->sample_aspect_ratio);
-	if (aspect == 0)
-		aspect = ctx->width / (float)ctx->height;
-	else
-		aspect = 1/aspect;
+	float aspect = ctx->width / (float)ctx->height;
+	float sample_aspect = av_q2d(ctx->v_stream->sample_aspect_ratio);
+	if (sample_aspect != 0)
+		aspect *= sample_aspect;
+	printf("Aspect: %f\n", aspect);
 
 	float iaspect = 1/aspect;
 

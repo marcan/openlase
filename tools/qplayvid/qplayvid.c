@@ -244,7 +244,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	frame->seekid = seekid;
 	memcpy(frame->data, ctx->v_frame->data[0], frame->data_size);
 
-	printf("Put frame %d\n", ctx->v_buf_put);
+	printf("Put frame %d (pts:%f seekid:%d)\n", ctx->v_buf_put, frame->pts, seekid);
 	pthread_mutex_lock(&ctx->v_buf_mutex);
 	if (++ctx->v_buf_put == ctx->v_buf_len)
 		ctx->v_buf_put = 0;
@@ -309,7 +309,8 @@ void *decoder_thread(void *arg)
 				pthread_mutex_lock(&ctx->v_buf_mutex);
 				pthread_cond_signal(&ctx->v_buf_not_empty);
 				pthread_mutex_unlock(&ctx->v_buf_mutex);
-
+				avcodec_flush_buffers(ctx->a_codec_ctx);
+				avcodec_flush_buffers(ctx->v_codec_ctx);
 			}
 			if (av_read_frame(ctx->fmt_ctx, &packet) < 0) {
 				fprintf(stderr, "EOF!\n");
@@ -517,7 +518,7 @@ int next_video_frame(PlayerCtx *ctx)
 	if (ctx->cur_frame && ctx->v_bufs[ctx->v_buf_get]->seekid > ctx->cur_frame->seekid)
 		ctx->last_frame_pts = -1;
 	ctx->cur_frame = ctx->v_bufs[ctx->v_buf_get];
-	printf("Get frame %d\n", ctx->v_buf_get);
+	printf("Get frame %d (pts: %f)\n", ctx->v_buf_get, ctx->cur_frame->pts);
 	ctx->v_buf_get++;
 	if (ctx->v_buf_get == ctx->v_buf_len)
 		ctx->v_buf_get = 0;

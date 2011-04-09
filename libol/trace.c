@@ -17,24 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*
-This is a horrible ad-hoc tracing algorithm. Originally it was a bit simpler,
-and it was merely used to trace metaballs and fire for the LASE demo. However,
-I plugged it into a video stream and it worked too well, so I ended up adding
-lots of incremental hacks and improvements.
-
-It's still highly primitive, though. It works by turning the input image into
-a 1bpp black and white image (with a threshold), performing edge detection,
-then walking those edges and as we clear them. There are quite a few hacks along
-the way to try to improve particular situations, such as clearing neighboring
-pixels to deal with double-wide edges produced under some circumstances, and
-stuff like decimation and overdraw.
-
-If you're wondering about the switch() at the end: in order to find stuff to
-trace, it walks the image in a spiral from the outside in, to try to put the
-object start/end points near the edges of the screen (less visible).
-*/
-
 #include "libol.h"
 #include <math.h>
 #include <string.h>

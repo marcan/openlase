@@ -16,7 +16,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-include_directories (${CMAKE_SOURCE_DIR}/include)
+check_include_files(malloc.h HAVE_MALLOC_H)
+check_function_exists(memalign HAVE_MEMALIGN)
+check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
+check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+
+include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
 
 enable_language(ASM_YASM)
 add_library (openlase SHARED libol.c text.c ilda.c trace.c imgproc_sse2.asm ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)

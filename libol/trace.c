@@ -43,6 +43,7 @@ object start/end points near the edges of the screen (less visible).
 #include <malloc.h>
 
 #include "trace.h"
+#include "align.h"
 
 struct OLTraceCtx {
 	OLTraceParams p;
@@ -100,21 +101,21 @@ static void alloc_bufs(OLTraceCtx *ctx)
 		ctx->btbuf = NULL;
 		ctx->sibuf = NULL;
 	} else {
-	    ctx->k = memalign(64, 16 * ctx->ksize);
+	    ctx->k = malloc_align(16 * ctx->ksize, 64);
 		ctx->kpad = ctx->ksize / 2;
 
-		ctx->bibuf = memalign(64, ctx->aw * (ctx->ah + 2 * ctx->kpad));
-		ctx->btbuf = memalign(64, ctx->ah * (ctx->aw + 2 * ctx->kpad));
-		ctx->sibuf = memalign(64, ctx->aw * (ctx->ah + 2));
+		ctx->bibuf = malloc_align(ctx->aw * (ctx->ah + 2 * ctx->kpad), 64);
+		ctx->btbuf = malloc_align(ctx->ah * (ctx->aw + 2 * ctx->kpad), 64);
+		ctx->sibuf = malloc_align(ctx->aw * (ctx->ah + 2), 64);
 	}
 
 	if (ctx->p.mode == OL_TRACE_CANNY) {
 		if (!ctx->sibuf)
-			ctx->sibuf = memalign(64, ctx->aw * (ctx->ah + 2));
-		ctx->stbuf = memalign(64, sizeof(*ctx->stbuf) * ctx->ah * (ctx->aw + 2));
-		ctx->sxbuf = memalign(64, sizeof(*ctx->sxbuf) * ctx->aw * ctx->ah);
-		ctx->sybuf = memalign(64, sizeof(*ctx->sybuf) * ctx->aw * ctx->ah);
-		ctx->smbuf = memalign(64, sizeof(*ctx->smbuf) * ctx->aw * ctx->ah);
+			ctx->sibuf = malloc_align(ctx->aw * (ctx->ah + 2), 64);
+		ctx->stbuf = malloc_align(sizeof(*ctx->stbuf) * ctx->ah * (ctx->aw + 2), 64);
+		ctx->sxbuf = malloc_align(sizeof(*ctx->sxbuf) * ctx->aw * ctx->ah, 64);
+		ctx->sybuf = malloc_align(sizeof(*ctx->sybuf) * ctx->aw * ctx->ah, 64);
+		ctx->smbuf = malloc_align(sizeof(*ctx->smbuf) * ctx->aw * ctx->ah, 64);
 	} else {
 		ctx->stbuf = NULL;
 		ctx->sxbuf = NULL;
@@ -145,21 +146,21 @@ static void free_bufs(OLTraceCtx *ctx)
 	if (ctx->pb)
 		free(ctx->pb);
 	if (ctx->k)
-		free(ctx->k);
+		free_align(ctx->k);
 	if (ctx->bibuf)
-		free(ctx->bibuf);
+		free_align(ctx->bibuf);
 	if (ctx->btbuf)
-		free(ctx->btbuf);
+		free_align(ctx->btbuf);
 	if (ctx->sibuf)
-		free(ctx->sibuf);
+		free_align(ctx->sibuf);
 	if (ctx->stbuf)
-		free(ctx->stbuf);
+		free_align(ctx->stbuf);
 	if (ctx->sxbuf)
-		free(ctx->sxbuf);
+		free_align(ctx->sxbuf);
 	if (ctx->sybuf)
-		free(ctx->sybuf);
+		free_align(ctx->sybuf);
 	if (ctx->smbuf)
-		free(ctx->smbuf);
+		free_align(ctx->smbuf);
 }
 
 static void init_blur(OLTraceCtx *ctx)

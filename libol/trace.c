@@ -175,7 +175,7 @@ static void init_blur(OLTraceCtx *ctx)
 	}
 }
 
-void perform_blur(OLTraceCtx *ctx, uint8_t *src, icoord stride)
+static void perform_blur(OLTraceCtx *ctx, uint8_t *src, icoord stride)
 {
 	unsigned int x, y, z;
 	uint8_t *p, *q;

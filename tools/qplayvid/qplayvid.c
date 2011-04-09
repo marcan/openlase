@@ -692,7 +692,13 @@ void *display_thread(void *arg)
 	OLTraceParams tparams;
 	OLTraceResult result;
 	memset(&result, 0, sizeof(result));
+	ctx->settings_changed = 1;
 
+	tparams.sigma = ctx->settings.blur / 100.0;
+	if (ctx->settings.canny)
+		tparams.mode = OL_TRACE_CANNY;
+	else
+		tparams.mode = OL_TRACE_THRESHOLD;
 	tparams.width = ctx->width;
 	tparams.height = ctx->height;
 

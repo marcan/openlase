@@ -62,7 +62,20 @@ static inline void *malloc_align(size_t size, size_t alignment)
 }
 # define free_align _aligned_free
 #else
-# error No aligned malloc available
+static inline void *malloc_align(size_t size, size_t alignment)
+{
+	CHECK_ALIGNMENT;
+	void *p = malloc(size + alignment + sizeof(void*) - 1);
+	uintptr_t ip = sizeof(void*) + (uintptr_t)p;
+	if (ip & (alignment-1))
+		ip = (ip & ~(alignment-1)) + alignment;
+	((void**)ip)[-1] = p;
+	return (void*)ip;
+}
+static inline void free_align(void *p)
+{
+	free(((void **)p)[-1]);
+}
 #endif
 
 #undef CHECK_ALIGNMENT

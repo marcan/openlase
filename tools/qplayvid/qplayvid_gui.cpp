@@ -17,8 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "qplayvid_gui.moc"
-
 #include <QApplication>
 #include <QMessageBox>
 #include <QVBoxLayout>
@@ -31,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <QStatusBar>
 #include <QFile>
 #include <QTextStream>
+
+#include "qplayvid_gui.h"
 
 #define Setting(name, ...) \
 	addSetting(new PlayerSetting(this, #name, settings.name, __VA_ARGS__))

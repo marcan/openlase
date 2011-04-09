@@ -20,11 +20,11 @@ if(QT4_FOUND)
   include(${QT_USE_FILE})
 
   QT4_WRAP_UI(output_UIS_H output_settings.ui)
-  QT4_AUTOMOC(output_settings.cpp output.cpp)
+  QT4_WRAP_CPP(output_MOCS output_settings.h)
 
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-  add_executable(output output.cpp output_settings.cpp ${output_UIS_H})
+  add_executable(output output.cpp output_settings.cpp ${output_UIS_H} ${output_MOCS})
   target_link_libraries(output ${JACK_LIBRARIES} ${QT_LIBRARIES})
 else()
   message(STATUS "Will NOT build output (Qt4 missing)")

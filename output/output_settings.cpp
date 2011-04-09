@@ -17,11 +17,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "output_settings.moc"
 #include <QMessageBox>
 #include <QGraphicsLineItem>
 
-#include <stdio.h>
+#include "output_settings.h"
 
 #define ASPECT_1_1    0
 #define ASPECT_4_3    1

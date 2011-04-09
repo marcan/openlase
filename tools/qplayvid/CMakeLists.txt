@@ -19,11 +19,11 @@
 if(QT4_FOUND AND FFMPEG_FOUND)
   include(${QT_USE_FILE})
 
-  QT4_AUTOMOC(qplayvid_gui.cpp qplayvid.cpp)
+  QT4_WRAP_CPP(qplayvid_MOCS qplayvid_gui.h)
 
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-  add_executable(qplayvid qplayvid.c qplayvid_gui.cpp)
+  add_executable(qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
   target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${QT_LIBRARIES})
 else()
   message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg missing)")

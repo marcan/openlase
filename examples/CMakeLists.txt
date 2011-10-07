@@ -22,6 +22,9 @@ link_directories (${CMAKE_BINARY_DIR}/libol)
 add_executable(circlescope circlescope.c)
 target_link_libraries(circlescope ${JACK_LIBRARIES} m)
 
+add_executable(scope scope.c)
+target_link_libraries(scope ${JACK_LIBRARIES} m)
+
 add_executable(simple simple.c)
 target_link_libraries(simple openlase)
 

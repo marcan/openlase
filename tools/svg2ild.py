@@ -27,8 +27,8 @@ class RenderParameters(object):
 		# bound for accurate bezier rendering (lower = better)
 		self.flatness = 0.000002
 		# output render size (max 32767)
-		self.width = 32000
-		self.height = 32000
+		self.width = 32767
+		self.height = 32767
 		# angle below which a node is considered smooth
 		self.curve_angle = 30.0
 		# dwell time at the start of a path (samples)
@@ -828,7 +828,7 @@ def load_svg(path):
 	parser.parse(path)
 	return handler.frame
 
-def write_ild(params, rframe, path):
+def write_ild(params, rframe, path, center=True):
 	min_x = min_y = max_x = max_y = None
 	for i,sample in enumerate(rframe):
 		x,y = sample.coord
@@ -850,10 +850,17 @@ def write_ild(params, rframe, path):
 		raise ValueError("No points rendered")
 
 	# center image
-	offx = -(min_x + max_x)/2
-	offy = -(min_y + max_y)/2
-	width = max_x - min_x
-	height = max_y - min_y
+	if center:
+		offx = -(min_x + max_x)/2
+		offy = -(min_y + max_y)/2
+		width = max_x - min_x
+		height = max_y - min_y
+	else:
+		offx = 0
+		offy = 0
+		width = 2*max(abs(min_x), abs(max_x))
+		height = 2*max(abs(min_y), abs(max_y))
+
 	scale = 1
 
 	if width > 65534 or height > 65534:
@@ -902,6 +909,7 @@ def write_ild(params, rframe, path):
 if __name__ == "__main__":
 	optimize = True
 	verbose = True
+	center = True
 	params = RenderParameters()
 
 	if sys.argv[1] == "-q":
@@ -910,6 +918,10 @@ if __name__ == "__main__":
 
 	if sys.argv[1] == "-noopt":
 		optimize = False
+		sys.argv = [sys.argv[0]] + sys.argv[2:]
+
+	if sys.argv[1] == "-noctr":
+		center = False
 		sys.argv = [sys.argv[0]] + sys.argv[2:]
 
 	if sys.argv[1] == "-cfg":
@@ -931,7 +943,7 @@ if __name__ == "__main__":
 	if verbose:
 		print "Done"
 
-	write_ild(params, rframe, sys.argv[2])
+	write_ild(params, rframe, sys.argv[2], center)
 
 	if verbose:
 		print "Statistics:"

@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-#define OL_FRAMES_BUF 3
+#define OL_FRAMES_BUF 5
 #define VIDEO_BUF 64
 
 #define SAMPLE_RATE 48000
@@ -750,7 +750,7 @@ void *display_thread(void *arg)
 
 		if (!ctx->cur_frame || ctx->cur_frame->seekid < 0) {
 			printf("Dummy frame\n");
-			float ftime = olRenderFrame(100);
+			float ftime = olRenderFrame(80);
 			pthread_mutex_lock(&ctx->display_mode_mutex);
 			display_mode = ctx->display_mode;
 			pthread_mutex_unlock(&ctx->display_mode_mutex);
@@ -822,7 +822,7 @@ void *display_thread(void *arg)
 			olEnd();
 		}
 
-		float ftime = olRenderFrame(100);
+		float ftime = olRenderFrame(80);
 		OLFrameInfo info;
 		olGetFrameInfo(&info);
 		frames++;
@@ -846,7 +846,7 @@ void *display_thread(void *arg)
 	olTraceDeinit(trace_ctx);
 
 	for(i = 0; i < OL_FRAMES_BUF; i++)
-		olRenderFrame(100);
+		olRenderFrame(80);
 
 	olShutdown();
 	return NULL;

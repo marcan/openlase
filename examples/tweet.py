@@ -82,7 +82,7 @@ class LaserThread(threading.Thread):
 			#print "render"
 			ftime = ol.renderFrame(60)
 			#print "done"
-			xpos -= ftime
+			xpos -= 0.6*ftime
 			if xpos < (-w-1) and cur_tweets is not None:
 				xpos = startpos
 				idx += 1

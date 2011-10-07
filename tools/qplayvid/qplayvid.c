@@ -379,11 +379,11 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 	for (i = 0; i < ctx->fmt_ctx->nb_streams; i++) {
 		switch (ctx->fmt_ctx->streams[i]->codec->codec_type) {
-			case CODEC_TYPE_VIDEO:
+			case AVMEDIA_TYPE_VIDEO:
 				if (ctx->video_idx == -1)
 					ctx->video_idx = i;
 				break;
-			case CODEC_TYPE_AUDIO:
+			case AVMEDIA_TYPE_AUDIO:
 				if (ctx->audio_idx == -1)
 					ctx->audio_idx = i;
 				break;

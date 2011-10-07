@@ -161,7 +161,7 @@ int	 av_vid_init(char *file)
 
 	videoStream=-1;
 	for (i=0; i<pFormatCtx->nb_streams; i++) {
-		if (pFormatCtx->streams[i]->codec->codec_type==CODEC_TYPE_VIDEO) {
+		if (pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
 			videoStream=i;
 			break;
 		}
@@ -197,7 +197,7 @@ int av_aud_init(char *file)
 
 	audioStream=-1;
 	for (i=0; i<pAFormatCtx->nb_streams; i++)
-		if (pAFormatCtx->streams[i]->codec->codec_type==CODEC_TYPE_AUDIO)
+		if (pAFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_AUDIO)
 		{
 			audioStream=i;
 			break;

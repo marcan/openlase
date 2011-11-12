@@ -134,7 +134,7 @@ int video_open(VContext **octx, char *file)
 
 	int stream=-1;
 	for (i=0; i<ctx->av.formatctx->nb_streams; i++) {
-		if (ctx->av.formatctx->streams[i]->codec->codec_type==CODEC_TYPE_VIDEO) {
+		if (ctx->av.formatctx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
 			stream=i;
 			break;
 		}
@@ -197,7 +197,7 @@ int audio_open(AContext **octx, char *file)
 
 	int stream=-1;
 	for (i=0; i<ctx->av.formatctx->nb_streams; i++) {
-		if (ctx->av.formatctx->streams[i]->codec->codec_type==CODEC_TYPE_AUDIO) {
+		if (ctx->av.formatctx->streams[i]->codec->codec_type==AVMEDIA_TYPE_AUDIO) {
 			stream=i;
 			break;
 		}

@@ -23,6 +23,7 @@ add_executable(playilda playilda.c)
 target_link_libraries(playilda ${JACK_LIBRARIES})
 
 if(FFMPEG_FOUND)
+  include_directories(${FFMPEG_INCLUDE_DIR})
   add_executable(playvid playvid.c)
   target_link_libraries(playvid openlase ${FFMPEG_LIBRARIES})
 else()

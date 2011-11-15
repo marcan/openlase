@@ -17,7 +17,7 @@
 #
 
 if(CURSES_FOUND AND FFMPEG_FOUND)
-  include_directories(${CMAKE_SOURCE_DIR}/tools ${CURSES_INCLUDE_DIR})
+  include_directories(${CMAKE_SOURCE_DIR}/tools ${CURSES_INCLUDE_DIR} ${FFMPEG_INCLUDE_DIR})
 
   add_executable(slides
     main.c 3ddemos.c static.c metaballs.c circlescope.c avstream.c video.c pong.c

@@ -40,7 +40,8 @@ class RenderParameters(object):
 		# dwell time at the end of a path (samples)
 		self.end_dwell = 3
 		# dwell time before switching the beam on, and after switching it off
-		self.switch_dwell = 6
+		self.switch_on_dwell = 3
+		self.switch_off_dwell = 6
 		# how many pointer of overdraw for closed shapes
 		self.closed_overdraw = 0
 		self.closed_start_dwell = 3
@@ -306,10 +307,10 @@ class LaserFrame(object):
 		out = []
 		cpos = self.objects[-1].endpos()
 		for i in self.objects:
-			trip = [LaserSample((int(cpos[0]*params.width),int(cpos[1]*params.height)))] * params.switch_dwell
+			trip = [LaserSample((int(cpos[0]*params.width),int(cpos[1]*params.height)))] * params.switch_on_dwell
 			trip += PathLine(cpos,i.startpos(),False).render(params)
-			trip += [LaserSample((int(i.startpos()[0]*params.width),int(i.startpos()[1]*params.height)))] * params.switch_dwell
-			params.points_dwell_switch += params.switch_dwell * 2
+			trip += [LaserSample((int(i.startpos()[0]*params.width),int(i.startpos()[1]*params.height)))] * params.switch_off_dwell
+			params.points_dwell_switch += params.switch_on_dwell + params.switch_off_dwell
 			for s in trip:
 				s.on = False
 			out += trip

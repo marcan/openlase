@@ -1,0 +1,17 @@
+Yes, this is the source code for LASE. Keep in mind that a good chunk of this
+was coded in a rush at the party, and it's also basically the first nontrivial
+code written for openlase. It has been modified slightly to make it work with
+the current API (which was slightly incompatible) but otherwise remains
+untouched, although it will look slightly better due to libol improvements
+since the demo was made.
+
+Danger: Here be dragons. :-)
+
+To compile: I've been too lazy to add a CMake module to conditionally search
+for libmodplug, so this is disabled by default. Uncomment the subdir at the end
+of ../CMakeLists.txt and make sure you have libmodplug and its headers (-dev
+package) installed.
+
+To run: make sure that GLOS-pope.xm is in your $PWD before running the binary
+(e.g. run it from this directory).
+

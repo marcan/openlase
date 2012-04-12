@@ -232,7 +232,9 @@ void PlayerUI::open(const char *filename)
 	qDebug() << "open:" << filename;
 	this->filename = filename;
 	loadSettings();
-	Q_ASSERT(playvid_open(&player, filename) == 0);
+	if(playvid_open(&player, filename)) {
+		qDebug() << "open failed";
+	}
 	playvid_set_eventcb(player, player_event_cb);
 	playvid_update_settings(player, &this->settings);
 	sl_time->setMaximum((int)(1000 * playvid_get_duration(player)));

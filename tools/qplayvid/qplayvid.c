@@ -33,9 +33,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavdevice/avdevice.h>
+#include <libswscale/swscale.h>
 
 #define OL_FRAMES_BUF 5
-#define VIDEO_BUF 64
+#define VIDEO_BUF 32
 
 #define SAMPLE_RATE 48000
 #define AUDIO_BUF 3
@@ -104,10 +106,12 @@ struct PlayerCtx {
 	int v_buf_put;
 	VideoFrame *cur_frame;
 	double last_frame_pts;
+	struct SwsContext *v_sws_ctx;
 
 	int a_stride;
 	short *a_ibuf;
 	short *a_rbuf;
+	int a_ch;
 	AudioSample *a_buf;
 	int a_buf_len;
 	int a_buf_get;
@@ -166,6 +170,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	for (i = 0; i < out_samples; i++) {
 		ctx->a_buf[put].l = *rbuf++;
 		ctx->a_buf[put].r = *rbuf++;
+		rbuf += ctx->a_ch - 2;
 		ctx->a_buf[put].seekid = seekid;
 		ctx->a_buf[put].pts = ctx->a_cur_pts;
 		put++;
@@ -174,7 +179,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 			put = 0;
 	}
 
-	printf("Put %d audio samples\n", out_samples);
+	printf("Put %d audio samples at pts %f\n", out_samples, ctx->a_cur_pts);
 
 	pthread_mutex_lock(&ctx->a_buf_mutex);
 	ctx->a_buf_put = put;
@@ -204,7 +209,10 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 	// The pts magic guesswork
 	int64_t pts = AV_NOPTS_VALUE;
-	int64_t frame_pts = *(int64_t*)ctx->v_frame->opaque;
+	int64_t *p_pts = (int64_t*)ctx->v_frame->opaque;
+	int64_t frame_pts = AV_NOPTS_VALUE;
+	if (p_pts)
+		frame_pts = *p_pts;
 	if (packet->dts != AV_NOPTS_VALUE) {
 		ctx->v_faulty_dts += packet->dts <= ctx->v_last_dts;
 		ctx->v_last_dts = packet->dts;
@@ -218,6 +226,24 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 		pts = frame_pts;
 	else
 		pts = packet->dts;
+
+	if (pts == AV_NOPTS_VALUE) {
+		if (ctx->v_last_pts != AV_NOPTS_VALUE) {
+			pts = ctx->v_last_pts++;
+		} else if (ctx->v_last_dts != AV_NOPTS_VALUE) {
+			pts = ctx->v_last_dts++;
+		}
+	}
+
+	if (pts == AV_NOPTS_VALUE) {
+		if (ctx->v_last_pts != AV_NOPTS_VALUE) {
+			pts = ctx->v_last_pts++;
+		} else if (ctx->v_last_dts != AV_NOPTS_VALUE) {
+			pts = ctx->v_last_dts++;
+		} else {
+			pts = 0;
+		}
+	}
 
 	pthread_mutex_lock(&ctx->v_buf_mutex);
 	while (((ctx->v_buf_put + 1) % ctx->v_buf_len) == ctx->v_buf_get) {
@@ -240,9 +266,20 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 		return decoded;
 	}
 
+	if (!ctx->v_sws_ctx) {
+		ctx->v_sws_ctx = sws_getContext(ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
+										ctx->width, ctx->height, PIX_FMT_GRAY8, SWS_BICUBIC,
+										NULL, NULL, NULL);
+	}
+
+	AVPicture pict;
+	pict.data[0] = frame->data;
+	pict.linesize[0] = frame->stride;
+
+	sws_scale(ctx->v_sws_ctx, ctx->v_frame->data, ctx->v_frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+
 	frame->pts = av_q2d(ctx->v_stream->time_base) * pts;
 	frame->seekid = seekid;
-	memcpy(frame->data, ctx->v_frame->data[0], frame->data_size);
 
 	printf("Put frame %d (pts:%f seekid:%d)\n", ctx->v_buf_put, frame->pts, seekid);
 	pthread_mutex_lock(&ctx->v_buf_mutex);
@@ -256,19 +293,21 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 void push_eof(PlayerCtx *ctx, int32_t seekid)
 {
-	pthread_mutex_lock(&ctx->a_buf_mutex);
-	while (((ctx->a_buf_put + 1) % ctx->a_buf_len) == ctx->a_buf_get) {
-		printf("Wait for space in audio buffer\n");
-		pthread_cond_wait(&ctx->a_buf_not_full, &ctx->a_buf_mutex);
+	if (ctx->audio_idx != -1) {
+		pthread_mutex_lock(&ctx->a_buf_mutex);
+		while (((ctx->a_buf_put + 1) % ctx->a_buf_len) == ctx->a_buf_get) {
+			printf("Wait for space in audio buffer\n");
+			pthread_cond_wait(&ctx->a_buf_not_full, &ctx->a_buf_mutex);
+		}
+		ctx->a_buf[ctx->a_buf_put].l = 0;
+		ctx->a_buf[ctx->a_buf_put].r = 0;
+		ctx->a_buf[ctx->a_buf_put].pts = 0;
+		ctx->a_buf[ctx->a_buf_put].seekid = -seekid;
+		if (++ctx->a_buf_put == ctx->a_buf_len)
+			ctx->a_buf_put = 0;
+		pthread_cond_signal(&ctx->a_buf_not_empty);
+		pthread_mutex_unlock(&ctx->a_buf_mutex);
 	}
-	ctx->a_buf[ctx->a_buf_put].l = 0;
-	ctx->a_buf[ctx->a_buf_put].r = 0;
-	ctx->a_buf[ctx->a_buf_put].pts = 0;
-	ctx->a_buf[ctx->a_buf_put].seekid = -seekid;
-	if (++ctx->a_buf_put == ctx->a_buf_len)
-		ctx->a_buf_put = 0;
-	pthread_cond_signal(&ctx->a_buf_not_empty);
-	pthread_mutex_unlock(&ctx->a_buf_mutex);
 
 	pthread_mutex_lock(&ctx->v_buf_mutex);
 	while (((ctx->v_buf_put + 1) % ctx->v_buf_len) == ctx->v_buf_get) {
@@ -309,7 +348,8 @@ void *decoder_thread(void *arg)
 				pthread_mutex_lock(&ctx->v_buf_mutex);
 				pthread_cond_signal(&ctx->v_buf_not_empty);
 				pthread_mutex_unlock(&ctx->v_buf_mutex);
-				avcodec_flush_buffers(ctx->a_codec_ctx);
+				if (ctx->audio_idx != -1)
+					avcodec_flush_buffers(ctx->a_codec_ctx);
 				avcodec_flush_buffers(ctx->v_codec_ctx);
 			}
 			if (av_read_frame(ctx->fmt_ctx, &packet) < 0) {
@@ -323,7 +363,7 @@ void *decoder_thread(void *arg)
 			cpacket = packet;
 			new_packet = 1;
 		}
-		if (cpacket.stream_index == ctx->audio_idx) {
+		if (ctx->audio_idx != -1 && cpacket.stream_index == ctx->audio_idx) {
 			decoded_bytes = decode_audio(ctx, &cpacket, new_packet, seekid);
 		} else if (cpacket.stream_index == ctx->video_idx) {
 			decoded_bytes = decode_video(ctx, &cpacket, new_packet, seekid);
@@ -366,11 +406,22 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 	ctx->cur_seekid = 1;
 	ctx->a_cur_pts = 0;
 
-	if (av_open_input_file(&ctx->fmt_ctx, file, NULL, 0, NULL) != 0)
-		return -1;
+	AVInputFormat *format = NULL;
+	if (!strncmp(file, "x11grab://", 10)) {
+		printf("Using X11Grab\n");
+		format = av_find_input_format("x11grab");
+		file += 10;
+	}
 
-	if (av_find_stream_info(ctx->fmt_ctx) < 0)
+	if (av_open_input_file(&ctx->fmt_ctx, file, NULL, 0, NULL) != 0) {
+		printf("Couldn't open input file %s\n", file);
 		return -1;
+	}
+
+	if (av_find_stream_info(ctx->fmt_ctx) < 0) {
+		printf("Couldn't get stream info\n");
+		return -1;
+	}
 
 	ctx->duration = ctx->fmt_ctx->duration/(double)AV_TIME_BASE;
 
@@ -392,28 +443,67 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		}
 	}
 
-	if (ctx->video_idx == -1 || ctx->audio_idx == -1)
+	if (ctx->video_idx == -1) {
+		printf("No video streams\n");
 		return -1;
+	}
 
-	ctx->a_stream = ctx->fmt_ctx->streams[ctx->audio_idx];
+	if (ctx->audio_idx != -1) {
+		ctx->a_stream = ctx->fmt_ctx->streams[ctx->audio_idx];
+		ctx->a_codec_ctx = ctx->a_stream->codec;
+		ctx->a_codec = avcodec_find_decoder(ctx->a_codec_ctx->codec_id);
+		if (ctx->a_codec == NULL) {
+			return -1;
+			printf("No audio codec\n");
+		}
+		if (avcodec_open(ctx->a_codec_ctx, ctx->a_codec) < 0) {
+			printf("Failed to open audio codec\n");
+			return -1;
+		}
+
+		printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
+
+		ctx->a_ch = 2;
+		if (ctx->a_codec_ctx->channels > 2)
+			ctx->a_ch = ctx->a_codec_ctx->channels;
+
+		ctx->a_resampler = av_audio_resample_init(ctx->a_ch, ctx->a_codec_ctx->channels,
+								SAMPLE_RATE, ctx->a_codec_ctx->sample_rate,
+								SAMPLE_FMT_S16, ctx->a_codec_ctx->sample_fmt,
+								16, 10, 0, 0.8);
+		if (!ctx->a_resampler)
+			return -1;
+
+		ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;
+
+		ctx->a_stride = av_get_bits_per_sample_fmt(ctx->a_codec_ctx->sample_fmt) / 8;
+		ctx->a_stride *= ctx->a_codec_ctx->channels;
+
+		ctx->a_ibuf = malloc(ctx->a_stride * AVCODEC_MAX_AUDIO_FRAME_SIZE);
+		ctx->a_rbuf = malloc(ctx->a_ch * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
+		ctx->a_buf_len = AUDIO_BUF*SAMPLE_RATE;
+		ctx->a_buf = malloc(sizeof(*ctx->a_buf) * ctx->a_buf_len);
+
+		pthread_mutex_init(&ctx->a_buf_mutex, NULL);
+		pthread_cond_init(&ctx->a_buf_not_full, NULL);
+		pthread_cond_init(&ctx->a_buf_not_empty, NULL);
+	}
+
 	ctx->v_stream = ctx->fmt_ctx->streams[ctx->video_idx];
-
-	ctx->a_codec_ctx = ctx->a_stream->codec;
 	ctx->v_codec_ctx = ctx->v_stream->codec;
 	ctx->width = ctx->v_codec_ctx->width;
 	ctx->height = ctx->v_codec_ctx->height;
 
-	ctx->a_codec = avcodec_find_decoder(ctx->a_codec_ctx->codec_id);
-	if (ctx->a_codec == NULL)
-		return -1;
 	ctx->v_codec = avcodec_find_decoder(ctx->v_codec_ctx->codec_id);
-	if (ctx->v_codec == NULL)
+	if (ctx->v_codec == NULL) {
+		printf("No video codec\n");
 		return -1;
+	}
 
-	if (avcodec_open(ctx->a_codec_ctx, ctx->a_codec) < 0)
+	if (avcodec_open(ctx->v_codec_ctx, ctx->v_codec) < 0) {
+		printf("Failed to open video codec\n");
 		return -1;
-	if (avcodec_open(ctx->v_codec_ctx, ctx->v_codec) < 0)
-		return -1;
+	}
 
 	ctx->v_pkt_pts = AV_NOPTS_VALUE;
     ctx->v_faulty_pts = ctx->v_faulty_dts = 0;
@@ -423,31 +513,9 @@ int decoder_init(PlayerCtx *ctx, const char *file)
     ctx->v_codec_ctx->release_buffer = hack_release_buffer;
 	ctx->v_codec_ctx->opaque = ctx;
 
-	printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
-
-	ctx->a_resampler = av_audio_resample_init(2, ctx->a_codec_ctx->channels,
-							SAMPLE_RATE, ctx->a_codec_ctx->sample_rate,
-							SAMPLE_FMT_S16, ctx->a_codec_ctx->sample_fmt,
-							16, 10, 0, 0.8);
-	if (!ctx->a_resampler)
-		return -1;
-
-	ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;
-
-	ctx->a_stride = av_get_bits_per_sample_fmt(ctx->a_codec_ctx->sample_fmt) / 8;
-	ctx->a_stride *= ctx->a_codec_ctx->channels;
-
-	ctx->a_ibuf = malloc(ctx->a_stride * AVCODEC_MAX_AUDIO_FRAME_SIZE);
-	ctx->a_rbuf = malloc(2 * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
-	ctx->a_buf_len = AUDIO_BUF*SAMPLE_RATE;
-	ctx->a_buf = malloc(sizeof(*ctx->a_buf) * ctx->a_buf_len);
-
 	ctx->v_frame = avcodec_alloc_frame();
 	ctx->v_buf_len = VIDEO_BUF;
 
-	pthread_mutex_init(&ctx->a_buf_mutex, NULL);
-	pthread_cond_init(&ctx->a_buf_not_full, NULL);
-	pthread_cond_init(&ctx->a_buf_not_empty, NULL);
 	pthread_mutex_init(&ctx->v_buf_mutex, NULL);
 	pthread_cond_init(&ctx->v_buf_not_full, NULL);
 	pthread_cond_init(&ctx->v_buf_not_empty, NULL);
@@ -464,7 +532,8 @@ void drop_audio(PlayerCtx *ctx, int by_pts)
 {
 	if (!ctx->cur_frame)
 		return;
-
+	if (ctx->audio_idx == -1)
+		return;
 	while (1) {
 		pthread_mutex_lock(&ctx->a_buf_mutex);
 		int get = ctx->a_buf_get;
@@ -495,6 +564,25 @@ void drop_audio(PlayerCtx *ctx, int by_pts)
 		if (i == 0)
 			break;
 	}
+}
+
+void drop_all_video(PlayerCtx *ctx)
+{
+	if (ctx->cur_frame && ctx->cur_frame->seekid == -ctx->cur_seekid) {
+		printf("No more video (EOF)\n");
+		return 0;
+	}
+	pthread_mutex_lock(&ctx->v_buf_mutex);
+	int last = (ctx->v_buf_put + ctx->v_buf_len - 1) % ctx->v_buf_len;
+	while (ctx->v_buf_get != ctx->v_buf_put) {
+		if (ctx->v_buf_get == last)
+			break;
+		ctx->v_buf_get++;
+		if (ctx->v_buf_get == ctx->v_buf_len)
+			ctx->v_buf_get = 0;
+	}
+	pthread_cond_signal(&ctx->v_buf_not_full);
+	pthread_mutex_unlock(&ctx->v_buf_mutex);
 }
 
 int next_video_frame(PlayerCtx *ctx)
@@ -530,6 +618,12 @@ int next_video_frame(PlayerCtx *ctx)
 void get_audio(float *lb, float *rb, int samples)
 {
 	PlayerCtx *ctx = g_ctx;
+
+	if (ctx->audio_idx == -1) {
+		memset(lb, 0, samples * sizeof(*lb));
+		memset(rb, 0, samples * sizeof(*rb));
+		return;
+	}
 
 	pthread_mutex_lock(&ctx->display_mode_mutex);
 	DisplayMode display_mode = ctx->display_mode;
@@ -722,6 +816,11 @@ void *display_thread(void *arg)
 		ctx->settings_changed = 0;
 		pthread_mutex_unlock(&ctx->settings_mutex);
 
+		if (ctx->audio_idx == -1) {
+			drop_all_video(ctx);
+			next_video_frame(ctx);
+		}
+
 		params.min_length = settings.minsize;
 		params.end_dwell = params.start_dwell = settings.dwell;
 		params.off_speed = settings.offspeed * 0.002;
@@ -866,6 +965,7 @@ int player_init(PlayerCtx *ctx)
 void playvid_init(void)
 {
 	av_register_all();
+	avdevice_register_all();
 }
 
 int playvid_open(PlayerCtx **octx, const char *filename)

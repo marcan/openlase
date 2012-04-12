@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define ASPECT_1_1    0
 #define ASPECT_4_3    1
 #define ASPECT_16_9   2
+#define ASPECT_3_2    3
 
 ControlPoint::ControlPoint()
 {
@@ -94,6 +95,8 @@ qreal OutputSettings::getYRatio(int ratio)
 			return 3.0/4.0;
 		case ASPECT_16_9:
 			return 9.0/16.0;
+		case ASPECT_3_2:
+			return 2.0/3.0;
 	}
 	return 1.0;
 }

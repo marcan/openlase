@@ -207,7 +207,7 @@ void key_gl(unsigned char key, int x, int y)
 
 void resize_gl(int width, int height)
 {
-	int min = width > height ? height : width;
+	int min = width < height ? height : width;
 	glViewport((width-min)/2, (height-min)/2, min, min);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();

@@ -127,7 +127,8 @@ struct frame {
 	int count;
 };
 
-struct frame frames[2];
+#define FRAMEBUFS 10
+struct frame frames[FRAMEBUFS];
 
 struct frame * volatile curframe;
 struct frame *curdframe;
@@ -514,8 +515,8 @@ int main (int argc, char *argv[])
 
 	while (1) {
 		stat(fname, &st2);
-		if(st1.st_mtime != st2.st_mtime) {
-			frameno = !frameno;
+		if(st1.st_mtim.tv_sec != st2.st_mtim.tv_sec || st1.st_mtim.tv_nsec != st2.st_mtim.tv_nsec) {
+			frameno = (frameno+1)%FRAMEBUFS;
 			printf("Loading new frame to slot %d\n", frameno);
 			if(frames[frameno].points)
 				free(frames[frameno].points);
@@ -524,7 +525,7 @@ int main (int argc, char *argv[])
 			curframe = &frames[frameno];
 			memcpy(&st1, &st2, sizeof(st1));
 		}
-		usleep(100000);
+		usleep(50000);
 	}
 	jack_client_close (client);
 	exit (0);

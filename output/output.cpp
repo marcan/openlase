@@ -226,13 +226,16 @@ int main (int argc, char *argv[])
 {
 	int retval;
 	jack_client_t *client;
+	char jack_client_name[] = "output";
+	jack_status_t jack_status;	
+	jack_options_t  jack_options = JackNullOption;		
 
 	QApplication app(argc, argv);
 	OutputSettings settings;
 	
 	cfg = &settings.cfg;
 
-	if ((client = jack_client_new ("output")) == 0) {
+	if ((client = jack_client_open(jack_client_name, jack_options, &jack_status)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
 	}

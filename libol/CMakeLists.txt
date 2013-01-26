@@ -24,8 +24,16 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DI
 
 include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
 
-enable_language(ASM_YASM)
-add_library (openlase SHARED libol.c text.c ilda.c trace.c imgproc_sse2.asm ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
+set(TRACER_SOURCES "")
+if(BUILD_TRACER)
+  set(TRACER_SOURCES trace.c imgproc_sse2.asm)
+  enable_language(ASM_YASM)
+  message(STATUS "Will build tracer (SSE2 version)")
+else()
+  message(STATUS "Will NOT build tracer")
+endif()
+
+add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
 target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c

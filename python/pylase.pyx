@@ -15,6 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+include "config.pxi"
+
 from libc.stdint cimport *
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
@@ -483,122 +485,123 @@ cpdef drawIlda3D(object ilda):
 	cdef IldaFile f = ilda
 	olDrawIlda3D(f.ilda)
 
-cdef extern from "trace.h":
-	ctypedef struct OLTraceCtx
+IF BUILD_TRACER == "Y":
+	cdef extern from "trace.h":
+		ctypedef struct OLTraceCtx
 
-	ctypedef enum OLTraceMode:
-		OL_TRACE_THRESHOLD
-		OL_TRACE_CANNY
+		ctypedef enum OLTraceMode:
+			OL_TRACE_THRESHOLD
+			OL_TRACE_CANNY
 
-	ctypedef struct OLTraceParams:
-		OLTraceMode mode
-		uint32_t width, height
-		float sigma
-		unsigned int threshold
-		unsigned int threshold2
+		ctypedef struct OLTraceParams:
+			OLTraceMode mode
+			uint32_t width, height
+			float sigma
+			unsigned int threshold
+			unsigned int threshold2
 
-	ctypedef struct OLTracePoint:
-		uint32_t x
-		uint32_t y
+		ctypedef struct OLTracePoint:
+			uint32_t x
+			uint32_t y
 
-	ctypedef struct OLTraceObject:
-		unsigned int count
-		OLTracePoint *points
+		ctypedef struct OLTraceObject:
+			unsigned int count
+			OLTracePoint *points
 
-	ctypedef struct OLTraceResult:
-		unsigned int count
-		OLTraceObject *objects
+		ctypedef struct OLTraceResult:
+			unsigned int count
+			OLTraceObject *objects
 
-	int olTraceInit(OLTraceCtx **ctx, OLTraceParams *params)
-	int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
+		int olTraceInit(OLTraceCtx **ctx, OLTraceParams *params)
+		int olTraceReInit(OLTraceCtx *ctx, OLTraceParams *params)
 
-	int olTrace(OLTraceCtx *ctx, uint8_t *src, uint32_t stride, OLTraceResult *result) nogil
-	void olTraceFree(OLTraceResult *result)
+		int olTrace(OLTraceCtx *ctx, uint8_t *src, uint32_t stride, OLTraceResult *result) nogil
+		void olTraceFree(OLTraceResult *result)
 
-	void olTraceDeinit(OLTraceCtx *ctx)
+		void olTraceDeinit(OLTraceCtx *ctx)
 
-TRACE_THRESHOLD = OL_TRACE_THRESHOLD
-TRACE_CANNY = OL_TRACE_CANNY
+	TRACE_THRESHOLD = OL_TRACE_THRESHOLD
+	TRACE_CANNY = OL_TRACE_CANNY
 
-cdef class Tracer(object):
-	cdef OLTraceParams params
-	cdef OLTraceCtx *ctx
+	cdef class Tracer(object):
+		cdef OLTraceParams params
+		cdef OLTraceCtx *ctx
 
-	def __init__(self, width, height):
-		self.params.mode = OL_TRACE_THRESHOLD
-		self.params.width = width
-		self.params.height = height
-		self.params.sigma = 0
-		self.params.threshold = 128
-		self.params.threshold2 = 0
-		olTraceInit(&self.ctx, &self.params)
+		def __init__(self, width, height):
+			self.params.mode = OL_TRACE_THRESHOLD
+			self.params.width = width
+			self.params.height = height
+			self.params.sigma = 0
+			self.params.threshold = 128
+			self.params.threshold2 = 0
+			olTraceInit(&self.ctx, &self.params)
 
-	def __del__(self):
-		olTraceDeinit(self.ctx)
+		def __del__(self):
+			olTraceDeinit(self.ctx)
 
-	def trace(self, data, stride = None):
-		if stride is None:
-			stride = self.params.width
-		if stride < self.params.width:
-			raise ValueError("Invalid stride")
-		if len(data) != stride * self.params.height:
-			raise ValueError("Invalid frame size")
-		cdef uint8_t * _data = <uint8_t *><char *>data
-		cdef uint8_t * _databuf
-		cdef uint32_t _stride = stride
-		cdef OLTraceResult result
-		_databuf = <uint8_t *>malloc(_stride * self.params.height)
-		try:
-			memcpy(_databuf, _data, _stride * self.params.height)
-			with nogil:
-				olTrace(self.ctx, _data, _stride, &result)
-		finally:
-			free(_databuf)
-		objects = []
-		cdef OLTracePoint *ipoints
-		for i in xrange(result.count):
-			ipoints = result.objects[i].points
-			points = []
-			for j in xrange(result.objects[i].count):
-				points.append((ipoints[j].x, ipoints[j].y))
-			objects.append(points)
-		olTraceFree(&result)
-		return objects
+		def trace(self, data, stride = None):
+			if stride is None:
+				stride = self.params.width
+			if stride < self.params.width:
+				raise ValueError("Invalid stride")
+			if len(data) != stride * self.params.height:
+				raise ValueError("Invalid frame size")
+			cdef uint8_t * _data = <uint8_t *><char *>data
+			cdef uint8_t * _databuf
+			cdef uint32_t _stride = stride
+			cdef OLTraceResult result
+			_databuf = <uint8_t *>malloc(_stride * self.params.height)
+			try:
+				memcpy(_databuf, _data, _stride * self.params.height)
+				with nogil:
+					olTrace(self.ctx, _data, _stride, &result)
+			finally:
+				free(_databuf)
+			objects = []
+			cdef OLTracePoint *ipoints
+			for i in xrange(result.count):
+				ipoints = result.objects[i].points
+				points = []
+				for j in xrange(result.objects[i].count):
+					points.append((ipoints[j].x, ipoints[j].y))
+				objects.append(points)
+			olTraceFree(&result)
+			return objects
 
-	property mode:
-		def __get__(self):
-			return self.params.mode
-		def __set__(self, v):
-			if v not in (OL_TRACE_THRESHOLD, OL_TRACE_CANNY):
-				raise ValueError("Invalid mode")
-			self.params.mode = v
-			olTraceReInit(self.ctx, &self.params)
+		property mode:
+			def __get__(self):
+				return self.params.mode
+			def __set__(self, v):
+				if v not in (OL_TRACE_THRESHOLD, OL_TRACE_CANNY):
+					raise ValueError("Invalid mode")
+				self.params.mode = v
+				olTraceReInit(self.ctx, &self.params)
 
-	property threshold:
-		def __get__(self):
-			return self.params.threshold
-		def __set__(self, v):
-			self.params.threshold = v
-			olTraceReInit(self.ctx, &self.params)
+		property threshold:
+			def __get__(self):
+				return self.params.threshold
+			def __set__(self, v):
+				self.params.threshold = v
+				olTraceReInit(self.ctx, &self.params)
 
-	property threshold2:
-		def __get__(self):
-			return self.params.threshold2
-		def __set__(self, v):
-			self.params.threshold2 = v
-			olTraceReInit(self.ctx, &self.params)
+		property threshold2:
+			def __get__(self):
+				return self.params.threshold2
+			def __set__(self, v):
+				self.params.threshold2 = v
+				olTraceReInit(self.ctx, &self.params)
 
-	property sigma:
-		def __get__(self):
-			return self.params.sigma
-		def __set__(self, v):
-			self.params.sigma = v
-			olTraceReInit(self.ctx, &self.params)
+		property sigma:
+			def __get__(self):
+				return self.params.sigma
+			def __set__(self, v):
+				self.params.sigma = v
+				olTraceReInit(self.ctx, &self.params)
 
-	property width:
-		def __get__(self):
-			return self.params.width
+		property width:
+			def __get__(self):
+				return self.params.width
 
-	property height:
-		def __get__(self):
-			return self.params.height
+		property height:
+			def __get__(self):
+				return self.params.height

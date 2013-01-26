@@ -8,9 +8,11 @@ else()
     ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"
     OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.pxi.in ${CMAKE_CURRENT_BINARY_DIR}/config.pxi)
+
   add_custom_command(OUTPUT pylase.c
     MAIN_DEPENDENCY pylase.pyx
-    COMMAND ${CYTHON_EXECUTABLE} -I ${CMAKE_SOURCE_DIR}/include -o pylase.c "${CMAKE_CURRENT_SOURCE_DIR}/pylase.pyx")
+    COMMAND ${CYTHON_EXECUTABLE} -I ${CMAKE_SOURCE_DIR}/include -I ${CMAKE_CURRENT_BINARY_DIR} -o pylase.c "${CMAKE_CURRENT_SOURCE_DIR}/pylase.pyx")
     list(APPEND ADDITIONAL_MAKE_CLEAN_FILES pylase.c)
 
   include_directories(${PYTHON_INCLUDE_PATH} ${CMAKE_SOURCE_DIR}/include)

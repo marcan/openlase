@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-if(CURSES_FOUND AND FFMPEG_FOUND)
+if(CURSES_FOUND AND FFMPEG_FOUND AND BUILD_TRACER)
   include_directories(${CMAKE_SOURCE_DIR}/tools ${CURSES_INCLUDE_DIR} ${FFMPEG_INCLUDE_DIR})
 
   add_executable(slides
@@ -43,5 +43,5 @@ if(CURSES_FOUND AND FFMPEG_FOUND)
   svg2ild(jack-logo)
   svg2ild(output)
 else()
-  message(STATUS "Will NOT build 27c3_slides (curses or FFmpeg missing)")
+  message(STATUS "Will NOT build 27c3_slides (curses or FFmpeg or tracer missing)")
 endif()

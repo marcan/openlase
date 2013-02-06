@@ -229,9 +229,8 @@ static int process (nframes_t nframes, void *arg)
 int olInit(int buffer_count, int max_points)
 {
 	int i;
-	char jack_client_name[] = "libol";
+	const char jack_client_name[] = "libol";
 	jack_status_t jack_status;
-	jack_options_t  jack_options = JackNullOption;		
 	
 	if (buffer_count < 2)
 		return -1;
@@ -261,7 +260,7 @@ int olInit(int buffer_count, int max_points)
 		frames[i].audio_r = malloc(frames[i].pmax * sizeof(float));
 	}
 
-	if ((client = jack_client_open(jack_client_name, jack_options, &jack_status)) == 0) {
+	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {
 		olLog ("jack server not running?\n");
 		return -1;
 	}

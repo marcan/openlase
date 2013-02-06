@@ -231,11 +231,10 @@ void init_gl(int width, int height)
 
 int main (int argc, char *argv[])
 {
-	char jack_client_name[] = "simulator";
+	const char jack_client_name[] = "simulator";
 	jack_status_t jack_status;
-	jack_options_t  jack_options = JackNullOption;	
 	
-	if ((client = jack_client_open(jack_client_name, jack_options, &jack_status)) == 0) {
+	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
 	}

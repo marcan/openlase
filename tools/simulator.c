@@ -231,7 +231,7 @@ void init_gl(int width, int height)
 
 int main (int argc, char *argv[])
 {
-	const char jack_client_name[] = "simulator";
+	static const char jack_client_name[] = "simulator";
 	jack_status_t jack_status;
 	
 	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {

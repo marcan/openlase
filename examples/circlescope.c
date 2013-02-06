@@ -104,7 +104,7 @@ void jack_shutdown (void *arg)
 int main (int argc, char *argv[])
 {
 	jack_client_t *client;
-	const char jack_client_name[] = "circlescope";
+	static const char jack_client_name[] = "circlescope";
 	jack_status_t jack_status;	
 
 	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {

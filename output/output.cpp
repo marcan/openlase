@@ -226,7 +226,7 @@ int main (int argc, char *argv[])
 {
 	int retval;
 	jack_client_t *client;
-	const char jack_client_name[] = "output";
+	static const char jack_client_name[] = "output";
 	jack_status_t jack_status;	
 
 	QApplication app(argc, argv);

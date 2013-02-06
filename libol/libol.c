@@ -229,7 +229,7 @@ static int process (nframes_t nframes, void *arg)
 int olInit(int buffer_count, int max_points)
 {
 	int i;
-	const char jack_client_name[] = "libol";
+	static const char jack_client_name[] = "libol";
 	jack_status_t jack_status;
 	
 	if (buffer_count < 2)

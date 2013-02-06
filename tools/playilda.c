@@ -459,7 +459,7 @@ int main (int argc, char *argv[])
 	char **argvp = &argv[1];
 	char *fname;
 	jack_client_t *client;
-	const char jack_client_name[] = "playilda";
+	static const char jack_client_name[] = "playilda";
 	jack_status_t jack_status;	
 	struct stat st1, st2;
 

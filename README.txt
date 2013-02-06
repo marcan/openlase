@@ -1,3 +1,10 @@
+This project is now hosted on GitHub, so your best bet for documentation is
+the wiki. You'll find it here:
+
+https://github.com/marcan/openlase/wiki
+
+Old README contents:
+
 No documentation for now, sorry! But there are a few examples. You'll want to
 read the blog post here:
 
@@ -12,8 +19,6 @@ TODO/bugs:
 - Color interpolation. Right now it just switches colors on vertices.
 - RGB support. The basics are there in libol, but I'm sure I'm missing stuff
   since I currently can't test it.
-- Figure out a tracing algorithm that isn't so hacky. Something with proper edge
-  detection.
 - Unify genfont.py and svg2ild.py. Right now genfont is a horrible
   cut-and-paste-and-hack of svg2ild.
 - Better integrate SVGs with libol, and/or deduplicate code. Currently svg2ild

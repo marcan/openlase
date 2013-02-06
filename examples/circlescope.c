@@ -104,8 +104,10 @@ void jack_shutdown (void *arg)
 int main (int argc, char *argv[])
 {
 	jack_client_t *client;
+	static const char jack_client_name[] = "circlescope";
+	jack_status_t jack_status;	
 
-	if ((client = jack_client_new ("circlescope")) == 0) {
+	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
 	}

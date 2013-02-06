@@ -459,6 +459,8 @@ int main (int argc, char *argv[])
 	char **argvp = &argv[1];
 	char *fname;
 	jack_client_t *client;
+	static const char jack_client_name[] = "playilda";
+	jack_status_t jack_status;	
 	struct stat st1, st2;
 
 	if (argc > 2 && !strcmp(argvp[0],"-s")) {
@@ -478,7 +480,7 @@ int main (int argc, char *argv[])
 		pointrate = atoi(argvp[1]);
 	}
 
-	if ((client = jack_client_new ("playilda")) == 0) {
+	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
 	}

@@ -25,6 +25,9 @@ target_link_libraries(playilda ${JACK_LIBRARIES})
 add_executable(invert invert.c)
 target_link_libraries(invert ${JACK_LIBRARIES})
 
+add_executable(cal cal.c)
+target_link_libraries(cal ${JACK_LIBRARIES})
+
 if(FFMPEG_FOUND AND BUILD_TRACER)
   include_directories(${FFMPEG_INCLUDE_DIR})
   add_executable(playvid playvid.c)

@@ -195,9 +195,9 @@ static int process (nframes_t nframes, void *arg)
 			g = 0.0f;
 			b = 0.0f;
 		}
-		r *= cfg->power * (1.0f-cfg->offset);
-		g *= cfg->power * (1.0f-cfg->offset);
-		b *= cfg->power * (1.0f-cfg->offset);
+		r *= cfg->power * cfg->redPower * (1.0f-cfg->offset);
+		g *= cfg->power * cfg->greenPower * (1.0f-cfg->offset);
+		b *= cfg->power * cfg->bluePower * (1.0f-cfg->offset);
 		r += cfg->offset;
 		g += cfg->offset;
 		b += cfg->offset;

@@ -191,6 +191,9 @@ void OutputSettings::showEvent (QShowEvent * event)
 void OutputSettings::updateAllSettings()
 {
 	cfg.power = powerSlider->value() / 100.0f;
+	cfg.redPower = redPowerSlider->value() / 100.0f;
+	cfg.greenPower = greenPowerSlider->value() / 100.0f;
+	cfg.bluePower = bluePowerSlider->value() / 100.0f;
 	cfg.offset = offsetSlider->value() / 100.0f;
 	cfg.size = sizeSlider->value() / 100.0f;
 	cfg.delay = delaySlider->value();
@@ -246,9 +249,12 @@ void OutputSettings::resetDefaults()
 	blankingEnable->setChecked(true);
 	
 	powerSlider->setValue(100);
-	offsetSlider->setValue(20);
+	redPowerSlider->setValue(100);
+	greenPowerSlider->setValue(100);
+	bluePowerSlider->setValue(100);
+	offsetSlider->setValue(0);
 	sizeSlider->setValue(100);
-	delaySlider->setValue(6);
+	delaySlider->setValue(7);
 	
 	resetPoints();
 	updateAllSettings();
@@ -378,6 +384,21 @@ void OutputSettings::on_enforceSafety_toggled(bool state)
 void OutputSettings::on_powerSlider_valueChanged(int value)
 {
 	cfg.power = value / 100.0f;
+}
+
+void OutputSettings::on_redPowerSlider_valueChanged(int value)
+{
+	cfg.redPower = value / 100.0f;
+}
+
+void OutputSettings::on_greenPowerSlider_valueChanged(int value)
+{
+	cfg.greenPower = value / 100.0f;
+}
+
+void OutputSettings::on_bluePowerSlider_valueChanged(int value)
+{
+	cfg.bluePower = value / 100.0f;
 }
 
 void OutputSettings::on_offsetSlider_valueChanged(int value)

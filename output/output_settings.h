@@ -53,6 +53,9 @@ public slots:
 	void on_enforceSafety_toggled(bool state);
 	void on_outputTest_pressed();
 	void on_outputTest_released();
+	void on_redPowerSlider_valueChanged(int value);
+	void on_greenPowerSlider_valueChanged(int value);
+	void on_bluePowerSlider_valueChanged(int value);
 	void on_powerSlider_valueChanged(int value);
 	void on_offsetSlider_valueChanged(int value);
 	void on_delaySlider_valueChanged(int value);

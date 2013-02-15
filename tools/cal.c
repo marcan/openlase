@@ -58,30 +58,20 @@ int process (nframes_t nframes, void *arg)
 	sample_t *o_g = (sample_t *) jack_port_get_buffer (out_g, nframes);
 	sample_t *o_b = (sample_t *) jack_port_get_buffer (out_b, nframes);
 
-	int col = 0;
 	nframes_t frm;
 	for (frm = 0; frm < nframes; frm++) {
 		sample_t val = max_size;
 
-		if (col && 1)
-			*o_r++ = 1.0f;
-		else
-			*o_r++ = 0.0f;
-		if (col && 2)
-			*o_g++ = 1.0f;
-		else
-			*o_g++ = 0.0f;
-		if (col && 4)
-			*o_b++ = 1.0f;
-		else
-			*o_b++ = 0.0f;
+		*o_r++ = 0.5f * sinf(pos) + 0.5f;
+		*o_g++ = 0.5f * sinf(pos + 2.0f*M_PI/3.0f) + 0.5f;
+		*o_b++ = 0.5f * sinf(pos + 4.0f*M_PI/3.0f) + 0.5f;
+
 		*o_x++ = cosf(pos) * val;
 		*o_y++ = sinf(pos) * val;
 
 		pos += w / rate;
 		while(pos >= (2*M_PI)) {
 			pos -= (2*M_PI);
-			col = (col + 1)%7;
 		}
 	}
 

@@ -128,6 +128,16 @@ static inline void filter(float *x, float *y)
 	cfilter(y,&py);
 }
 
+static inline float scale_color(float c, float c_max, float c_min, float blank, float power)
+{
+	if ( c < 0.001 ) {
+		return blank;
+	}
+	else {
+		return (c * power * (c_max - c_min)) + c_min;
+	}
+}
+
 static int process (nframes_t nframes, void *arg)
 {
 	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
@@ -195,12 +205,9 @@ static int process (nframes_t nframes, void *arg)
 			g = 0.0f;
 			b = 0.0f;
 		}
-		r *= cfg->power * cfg->redPower * (1.0f-cfg->redOffset);
-		g *= cfg->power * cfg->greenPower * (1.0f-cfg->greenOffset);
-		b *= cfg->power * cfg->bluePower * (1.0f-cfg->blueOffset);
-		r += cfg->redOffset;
-		g += cfg->greenOffset;
-		b += cfg->blueOffset;
+		r = scale_color(r, cfg->redMax, cfg->redMin, cfg->redBlank, cfg->power);
+		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
+		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);
 
 		if(orig_r == 0.0f && orig_g == 0.0f && orig_b == 0.0f) {
 			if(frames_dead >= DEAD_TIME) {

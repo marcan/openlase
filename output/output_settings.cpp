@@ -192,15 +192,18 @@ void OutputSettings::updateAllSettings()
 {
 	cfg.power = powerBox->value() / 100.0f;
 	cfg.size = sizeBox->value() / 100.0f;
-	cfg.redPower = redPowerBox->value() / 100.0f;
-	cfg.redOffset = redOffsetBox->value() / 100.0f;
+	cfg.redMax = redMaxBox->value() / 100.0f;
+	cfg.redMin = redMinBox->value() / 100.0f;
+	cfg.redBlank = redBlankBox->value() / 100.0f;
 	cfg.redDelay = redDelayBox->value();
-	cfg.greenPower = greenPowerBox->value() / 100.0f;
-	cfg.greenOffset = greenOffsetBox->value() / 100.0f;
-	cfg.greenDelay = greenDelayBox->value();
-	cfg.bluePower = bluePowerBox->value() / 100.0f;
-	cfg.blueOffset = blueOffsetBox->value() / 100.0f;
-	cfg.blueDelay = blueDelayBox->value();
+	cfg.greenMax = redMaxBox->value() / 100.0f;
+	cfg.greenMin = redMinBox->value() / 100.0f;
+	cfg.greenBlank = redBlankBox->value() / 100.0f;
+	cfg.greenDelay = redDelayBox->value();
+	cfg.blueMax = redMaxBox->value() / 100.0f;
+	cfg.blueMin = redMinBox->value() / 100.0f;
+	cfg.blueBlank = redBlankBox->value() / 100.0f;
+	cfg.blueDelay = redDelayBox->value();
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;
@@ -254,14 +257,17 @@ void OutputSettings::resetDefaults()
 	
 	powerBox->setValue(100);
 	sizeBox->setValue(100);
-	redPowerBox->setValue(100);
-	redOffsetBox->setValue(0);
+	redMaxBox->setValue(100);
+	redMinBox->setValue(0);
+	redBlankBox->setValue(0);
 	redDelayBox->setValue(7);
-	greenPowerBox->setValue(100);
-	greenOffsetBox->setValue(0);
+	greenMaxBox->setValue(100);
+	greenMinBox->setValue(0);
+	greenBlankBox->setValue(0);
 	greenDelayBox->setValue(7);
-	bluePowerBox->setValue(100);
-	blueOffsetBox->setValue(0);
+	blueMaxBox->setValue(100);
+	blueMinBox->setValue(0);
+	blueBlankBox->setValue(0);
 	blueDelayBox->setValue(7);
 	
 	resetPoints();
@@ -399,14 +405,19 @@ void OutputSettings::on_sizeBox_valueChanged(int value)
 	cfg.size = value / 100.0f;
 }
 
-void OutputSettings::on_redPowerBox_valueChanged(int value)
+void OutputSettings::on_redMaxBox_valueChanged(int value)
 {
-	cfg.redPower = value / 100.0f;
+	cfg.redMax = value / 100.0f;
 }
 
-void OutputSettings::on_redOffsetBox_valueChanged(int value)
+void OutputSettings::on_redMinBox_valueChanged(int value)
 {
-	cfg.redOffset = value / 100.0f;
+	cfg.redMin = value / 100.0f;
+}
+
+void OutputSettings::on_redBlankBox_valueChanged(int value)
+{
+	cfg.redBlank = value / 100.0f;
 }
 
 void OutputSettings::on_redDelayBox_valueChanged(int value)
@@ -414,14 +425,19 @@ void OutputSettings::on_redDelayBox_valueChanged(int value)
 	cfg.redDelay = value;
 }
 
-void OutputSettings::on_greenPowerBox_valueChanged(int value)
+void OutputSettings::on_greenMaxBox_valueChanged(int value)
 {
-	cfg.greenPower = value / 100.0f;
+	cfg.greenMax = value / 100.0f;
 }
 
-void OutputSettings::on_greenOffsetBox_valueChanged(int value)
+void OutputSettings::on_greenMinBox_valueChanged(int value)
 {
-	cfg.greenOffset = value / 100.0f;
+	cfg.greenMin = value / 100.0f;
+}
+
+void OutputSettings::on_greenBlankBox_valueChanged(int value)
+{
+	cfg.greenBlank = value / 100.0f;
 }
 
 void OutputSettings::on_greenDelayBox_valueChanged(int value)
@@ -429,18 +445,24 @@ void OutputSettings::on_greenDelayBox_valueChanged(int value)
 	cfg.greenDelay = value;
 }
 
-void OutputSettings::on_bluePowerBox_valueChanged(int value)
+void OutputSettings::on_blueMaxBox_valueChanged(int value)
 {
-	cfg.bluePower = value / 100.0f;
+	cfg.blueMax = value / 100.0f;
 }
 
-void OutputSettings::on_blueOffsetBox_valueChanged(int value)
+void OutputSettings::on_blueMinBox_valueChanged(int value)
 {
-	cfg.blueOffset = value / 100.0f;
+	cfg.blueMin = value / 100.0f;
+}
+
+void OutputSettings::on_blueBlankBox_valueChanged(int value)
+{
+	cfg.blueBlank = value / 100.0f;
 }
 
 void OutputSettings::on_blueDelayBox_valueChanged(int value)
 {
 	cfg.blueDelay = value;
 }
+
 

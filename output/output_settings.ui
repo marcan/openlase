@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>674</width>
-    <height>711</height>
+    <width>680</width>
+    <height>712</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -44,7 +44,7 @@
        <x>17</x>
        <y>25</y>
        <width>635</width>
-       <height>133</height>
+       <height>141</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -244,19 +244,26 @@
           <item>
            <widget class="QLabel" name="label_8">
             <property name="text">
-             <string>Power</string>
+             <string>Max</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_9">
             <property name="text">
-             <string>Offset</string>
+             <string>Min</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_10">
+            <property name="text">
+             <string>Blank</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_3">
             <property name="text">
              <string>Delay</string>
             </property>
@@ -304,6 +311,43 @@
            </layout>
           </item>
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_29">
+            <item>
+             <spacer name="horizontalSpacer_57">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="redMaxBox">
+              <property name="maximum">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_58">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_16">
             <item>
              <spacer name="horizontalSpacer_43">
@@ -319,7 +363,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="redPowerBox">
+             <widget class="QSpinBox" name="redMinBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -356,7 +400,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="redOffsetBox">
+             <widget class="QSpinBox" name="redBlankBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -456,6 +500,43 @@
            </layout>
           </item>
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_28">
+            <item>
+             <spacer name="horizontalSpacer_55">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="greenMaxBox">
+              <property name="maximum">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_56">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_22">
             <item>
              <spacer name="horizontalSpacer_47">
@@ -471,7 +552,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="greenPowerBox">
+             <widget class="QSpinBox" name="greenMinBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -508,7 +589,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="greenOffsetBox">
+             <widget class="QSpinBox" name="greenBlankBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -608,6 +689,43 @@
            </layout>
           </item>
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_27">
+            <item>
+             <spacer name="horizontalSpacer_53">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="blueMaxBox">
+              <property name="maximum">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_54">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_6">
             <item>
              <spacer name="horizontalSpacer_39">
@@ -623,7 +741,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="bluePowerBox">
+             <widget class="QSpinBox" name="blueMinBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -660,7 +778,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QSpinBox" name="blueOffsetBox">
+             <widget class="QSpinBox" name="blueBlankBox">
               <property name="maximum">
                <number>100</number>
               </property>
@@ -898,7 +1016,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>674</width>
+     <width>680</width>
      <height>25</height>
     </rect>
    </property>
@@ -952,7 +1070,7 @@
   <tabstop>fitSquare</tabstop>
   <tabstop>resetTransform</tabstop>
   <tabstop>powerBox</tabstop>
-  <tabstop>bluePowerBox</tabstop>
+  <tabstop>blueMinBox</tabstop>
   <tabstop>sizeBox</tabstop>
  </tabstops>
  <resources/>

@@ -190,17 +190,21 @@ void OutputSettings::showEvent (QShowEvent * event)
 
 void OutputSettings::updateAllSettings()
 {
-	cfg.power = powerSlider->value() / 100.0f;
-	cfg.redPower = redPowerSlider->value() / 100.0f;
-	cfg.greenPower = greenPowerSlider->value() / 100.0f;
-	cfg.bluePower = bluePowerSlider->value() / 100.0f;
-	cfg.offset = offsetSlider->value() / 100.0f;
-	cfg.size = sizeSlider->value() / 100.0f;
-	cfg.delay = delaySlider->value();
+	cfg.power = powerBox->value() / 100.0f;
+	cfg.size = sizeBox->value() / 100.0f;
+	cfg.redPower = redPowerBox->value() / 100.0f;
+	cfg.redOffset = redOffsetBox->value() / 100.0f;
+	cfg.redDelay = redDelayBox->value();
+	cfg.greenPower = greenPowerBox->value() / 100.0f;
+	cfg.greenOffset = greenOffsetBox->value() / 100.0f;
+	cfg.greenDelay = greenDelayBox->value();
+	cfg.bluePower = bluePowerBox->value() / 100.0f;
+	cfg.blueOffset = blueOffsetBox->value() / 100.0f;
+	cfg.blueDelay = blueDelayBox->value();
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;
-	cfg.safe = enforceSafety->isChecked();
+	cfg.safe = 1; //enforceSafety->isChecked();
 
 	if(cfg.safe) {
 		xEnable->setChecked(true);
@@ -241,20 +245,24 @@ void OutputSettings::resetDefaults()
 	xySwap->setChecked(false);
 	aspectScale->setChecked(false);
 	
-	enforceSafety->setChecked(true);
+	//enforceSafety->setChecked(true);
 	
 	aspectRatio->setCurrentIndex(ASPECT_1_1);
 
 	outputEnable->setChecked(true);
 	blankingEnable->setChecked(true);
 	
-	powerSlider->setValue(100);
-	redPowerSlider->setValue(100);
-	greenPowerSlider->setValue(100);
-	bluePowerSlider->setValue(100);
-	offsetSlider->setValue(0);
-	sizeSlider->setValue(100);
-	delaySlider->setValue(7);
+	powerBox->setValue(100);
+	sizeBox->setValue(100);
+	redPowerBox->setValue(100);
+	redOffsetBox->setValue(0);
+	redDelayBox->setValue(7);
+	greenPowerBox->setValue(100);
+	greenOffsetBox->setValue(0);
+	greenDelayBox->setValue(7);
+	bluePowerBox->setValue(100);
+	blueOffsetBox->setValue(0);
+	blueDelayBox->setValue(7);
 	
 	resetPoints();
 	updateAllSettings();
@@ -353,7 +361,7 @@ void OutputSettings::on_resetTransform_clicked()
 	resetPoints();
 }
 
-
+/*
 void OutputSettings::on_enforceSafety_toggled(bool state)
 {
 	if (!state) {
@@ -380,38 +388,59 @@ void OutputSettings::on_enforceSafety_toggled(bool state)
 	
 	cfg.safe = state;
 }
-
-void OutputSettings::on_powerSlider_valueChanged(int value)
+*/
+void OutputSettings::on_powerBox_valueChanged(int value)
 {
 	cfg.power = value / 100.0f;
 }
 
-void OutputSettings::on_redPowerSlider_valueChanged(int value)
+void OutputSettings::on_sizeBox_valueChanged(int value)
+{
+	cfg.size = value / 100.0f;
+}
+
+void OutputSettings::on_redPowerBox_valueChanged(int value)
 {
 	cfg.redPower = value / 100.0f;
 }
 
-void OutputSettings::on_greenPowerSlider_valueChanged(int value)
+void OutputSettings::on_redOffsetBox_valueChanged(int value)
+{
+	cfg.redOffset = value / 100.0f;
+}
+
+void OutputSettings::on_redDelayBox_valueChanged(int value)
+{
+	cfg.redDelay = value;
+}
+
+void OutputSettings::on_greenPowerBox_valueChanged(int value)
 {
 	cfg.greenPower = value / 100.0f;
 }
 
-void OutputSettings::on_bluePowerSlider_valueChanged(int value)
+void OutputSettings::on_greenOffsetBox_valueChanged(int value)
+{
+	cfg.greenOffset = value / 100.0f;
+}
+
+void OutputSettings::on_greenDelayBox_valueChanged(int value)
+{
+	cfg.greenDelay = value;
+}
+
+void OutputSettings::on_bluePowerBox_valueChanged(int value)
 {
 	cfg.bluePower = value / 100.0f;
 }
 
-void OutputSettings::on_offsetSlider_valueChanged(int value)
+void OutputSettings::on_blueOffsetBox_valueChanged(int value)
 {
-	cfg.offset = value / 100.0f;
+	cfg.blueOffset = value / 100.0f;
 }
 
-void OutputSettings::on_delaySlider_valueChanged(int value)
+void OutputSettings::on_blueDelayBox_valueChanged(int value)
 {
-	cfg.delay = value;
+	cfg.blueDelay = value;
 }
 
-void OutputSettings::on_sizeSlider_valueChanged(int value)
-{
-	cfg.size = value / 100.0f;
-}

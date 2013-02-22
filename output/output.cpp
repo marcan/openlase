@@ -195,12 +195,12 @@ static int process (nframes_t nframes, void *arg)
 			g = 0.0f;
 			b = 0.0f;
 		}
-		r *= cfg->power * cfg->redPower * (1.0f-cfg->offset);
-		g *= cfg->power * cfg->greenPower * (1.0f-cfg->offset);
-		b *= cfg->power * cfg->bluePower * (1.0f-cfg->offset);
-		r += cfg->offset;
-		g += cfg->offset;
-		b += cfg->offset;
+		r *= cfg->power * cfg->redPower * (1.0f-cfg->redOffset);
+		g *= cfg->power * cfg->greenPower * (1.0f-cfg->greenOffset);
+		b *= cfg->power * cfg->bluePower * (1.0f-cfg->blueOffset);
+		r += cfg->redOffset;
+		g += cfg->greenOffset;
+		b += cfg->blueOffset;
 
 		if(orig_r == 0.0f && orig_g == 0.0f && orig_b == 0.0f) {
 			if(frames_dead >= DEAD_TIME) {
@@ -221,9 +221,9 @@ static int process (nframes_t nframes, void *arg)
 		buf_r[ibuf_r] = r;
 		buf_g[ibuf_g] = g;
 		buf_b[ibuf_b] = b;
-		*o_r++ = buf_r[(ibuf_r + MAX_DELAY - cfg->delay) % MAX_DELAY];
-		*o_g++ = buf_g[(ibuf_g + MAX_DELAY - cfg->delay) % MAX_DELAY];
-		*o_b++ = buf_b[(ibuf_b + MAX_DELAY - cfg->delay) % MAX_DELAY];
+		*o_r++ = buf_r[(ibuf_r + MAX_DELAY - cfg->redDelay) % MAX_DELAY];
+		*o_g++ = buf_g[(ibuf_g + MAX_DELAY - cfg->greenDelay) % MAX_DELAY];
+		*o_b++ = buf_b[(ibuf_b + MAX_DELAY - cfg->blueDelay) % MAX_DELAY];
 		ibuf_r = (ibuf_r + 1) % MAX_DELAY;
 		ibuf_g = (ibuf_g + 1) % MAX_DELAY;
 		ibuf_b = (ibuf_b + 1) % MAX_DELAY;

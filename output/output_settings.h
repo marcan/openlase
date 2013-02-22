@@ -50,16 +50,20 @@ public slots:
 	void on_aspectRatio_currentIndexChanged(int index);
 	void on_aspectScale_toggled(bool state);
 	void on_fitSquare_toggled(bool state);
-	void on_enforceSafety_toggled(bool state);
+	//void on_enforceSafety_toggled(bool state);
 	void on_outputTest_pressed();
 	void on_outputTest_released();
-	void on_redPowerSlider_valueChanged(int value);
-	void on_greenPowerSlider_valueChanged(int value);
-	void on_bluePowerSlider_valueChanged(int value);
-	void on_powerSlider_valueChanged(int value);
-	void on_offsetSlider_valueChanged(int value);
-	void on_delaySlider_valueChanged(int value);
-	void on_sizeSlider_valueChanged(int value);
+	void on_redPowerBox_valueChanged(int value);
+	void on_redOffsetBox_valueChanged(int value);
+	void on_redDelayBox_valueChanged(int value);
+	void on_greenPowerBox_valueChanged(int value);
+	void on_greenOffsetBox_valueChanged(int value);
+	void on_greenDelayBox_valueChanged(int value);
+	void on_bluePowerBox_valueChanged(int value);
+	void on_blueOffsetBox_valueChanged(int value);
+	void on_blueDelayBox_valueChanged(int value);
+	void on_powerBox_valueChanged(int value);
+	void on_sizeBox_valueChanged(int value);
 	void on_resetTransform_clicked();
 
 	void resizeEvent (QResizeEvent * event);

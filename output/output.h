@@ -34,14 +34,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef struct {
 	float power;
-	float redPower;
-	float greenPower;
-	float bluePower;
-	float offset;
 	float size;
+	float redPower;
+	float redOffset;
+	int redDelay;
+	float greenPower;
+	float greenOffset;
+	int greenDelay;
+	float bluePower;
+	float blueOffset;
+	int blueDelay;
 	float transform[3][3];
 
-	int delay;
 	int scan_flags;
 	int blank_flags;
 	int safe;

@@ -61,6 +61,11 @@ sample_t buf_b[MAX_DELAY];
 
 output_config_t *cfg;
 
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
 static void generate_enable(sample_t *buf, nframes_t nframes)
 {
 	while (nframes--) {
@@ -189,11 +194,16 @@ static int process (nframes_t nframes, void *arg)
 			x *= cfg->size;
 			y *= cfg->size;
 		}
-		
+	
 		if (cfg->blank_flags & BLANK_INVERT) {
 			r = 1.0f - r;
 			g = 1.0f - g;
 			b = 1.0f - b;
+		}
+		if (!cfg->outputRed || !cfg->outputGreen || !cfg->outputBlue) {
+			// no RBG so convert to monochrome via HLV using value
+			float v = max(r,max(g,b));
+			r = g = b = v;
 		}
 		if (!(cfg->blank_flags & BLANK_ENABLE)) {
 			r = 1.0f;
@@ -205,6 +215,22 @@ static int process (nframes_t nframes, void *arg)
 			g = 0.0f;
 			b = 0.0f;
 		}
+		if (!cfg->redEnable || !cfg->outputRed) {
+			r = 0.0f;
+		}
+		if (!cfg->greenEnable || !cfg->outputGreen) {
+			g = 0.0f;
+		}
+		if (!cfg->blueEnable || !cfg->outputBlue) {
+			b = 0.0f;
+		}
+		if (!cfg->analogColor) {
+			// TTL color
+			r = (r >= 0.5f? 1.0f: 0.0f);
+			g = (g >= 0.5f? 1.0f: 0.0f);
+			b = (b >= 0.5f? 1.0f: 0.0f);
+		}
+
 		r = scale_color(r, cfg->redMax, cfg->redMin, cfg->redBlank, cfg->power);
 		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
 		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);

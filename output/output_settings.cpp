@@ -27,6 +27,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define ASPECT_16_9   2
 #define ASPECT_3_2    3
 
+#define COLORMODE_ANALOG 0
+#define COLORMODE_TTL    1
+
+#define COLORCHANNEL_RGB 0
+#define COLORCHANNEL_R   1
+#define COLORCHANNEL_G   2
+#define COLORCHANNEL_B   3
+
 ControlPoint::ControlPoint()
 {
 	form = 0;
@@ -207,7 +215,7 @@ void OutputSettings::updateAllSettings()
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;
-	cfg.safe = 1; //enforceSafety->isChecked();
+	cfg.safe = enforceSafety->isChecked();
 
 	if(cfg.safe) {
 		xEnable->setChecked(true);
@@ -248,23 +256,32 @@ void OutputSettings::resetDefaults()
 	xySwap->setChecked(false);
 	aspectScale->setChecked(false);
 	
-	//enforceSafety->setChecked(true);
+	enforceSafety->setChecked(true);
 	
 	aspectRatio->setCurrentIndex(ASPECT_1_1);
 
 	outputEnable->setChecked(true);
 	blankingEnable->setChecked(true);
-	
+
+	colorMode->setCurrentIndex(COLORMODE_ANALOG);
+	colorChannels->setCurrentIndex(COLORCHANNEL_RGB);
+
 	powerBox->setValue(100);
 	sizeBox->setValue(100);
+
+	redEnable->setChecked(true);
 	redMaxBox->setValue(100);
 	redMinBox->setValue(0);
 	redBlankBox->setValue(0);
 	redDelayBox->setValue(7);
+
+	greenEnable->setChecked(true);
 	greenMaxBox->setValue(100);
 	greenMinBox->setValue(0);
 	greenBlankBox->setValue(0);
 	greenDelayBox->setValue(7);
+
+	blueEnable->setChecked(true);
 	blueMaxBox->setValue(100);
 	blueMinBox->setValue(0);
 	blueBlankBox->setValue(0);
@@ -362,12 +379,23 @@ void OutputSettings::on_aspectRatio_currentIndexChanged(int index)
 	updateMatrix();
 }
 
+void OutputSettings::on_colorMode_currentIndexChanged(int index)
+{
+	cfg.analogColor = (index == COLORMODE_ANALOG);
+}
+
+void OutputSettings::on_colorChannels_currentIndexChanged(int index)
+{
+	cfg.outputRed = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_R);
+	cfg.outputGreen = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_G);
+	cfg.outputBlue = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_B);
+}
+
 void OutputSettings::on_resetTransform_clicked()
 {
 	resetPoints();
 }
 
-/*
 void OutputSettings::on_enforceSafety_toggled(bool state)
 {
 	if (!state) {
@@ -394,7 +422,7 @@ void OutputSettings::on_enforceSafety_toggled(bool state)
 	
 	cfg.safe = state;
 }
-*/
+
 void OutputSettings::on_powerBox_valueChanged(int value)
 {
 	cfg.power = value / 100.0f;
@@ -403,6 +431,11 @@ void OutputSettings::on_powerBox_valueChanged(int value)
 void OutputSettings::on_sizeBox_valueChanged(int value)
 {
 	cfg.size = value / 100.0f;
+}
+
+void OutputSettings::on_redEnable_toggled(bool state)
+{
+	cfg.redEnable = state;
 }
 
 void OutputSettings::on_redMaxBox_valueChanged(int value)
@@ -425,6 +458,11 @@ void OutputSettings::on_redDelayBox_valueChanged(int value)
 	cfg.redDelay = value;
 }
 
+void OutputSettings::on_greenEnable_toggled(bool state)
+{
+	cfg.greenEnable = state;
+}
+
 void OutputSettings::on_greenMaxBox_valueChanged(int value)
 {
 	cfg.greenMax = value / 100.0f;
@@ -443,6 +481,11 @@ void OutputSettings::on_greenBlankBox_valueChanged(int value)
 void OutputSettings::on_greenDelayBox_valueChanged(int value)
 {
 	cfg.greenDelay = value;
+}
+
+void OutputSettings::on_blueEnable_toggled(bool state)
+{
+	cfg.blueEnable = state;
 }
 
 void OutputSettings::on_blueMaxBox_valueChanged(int value)

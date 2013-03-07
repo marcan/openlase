@@ -27,6 +27,59 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <jack/jack.h>
 #include <math.h>
 
+void HSBToRGB(
+    unsigned int inHue, unsigned int inSaturation, unsigned int inBrightness,
+    unsigned int *oR, unsigned int *oG, unsigned int *oB )
+{
+    if (inSaturation == 0)
+    {
+        // achromatic (grey)
+        *oR = *oG = *oB = inBrightness;
+    }
+    else
+    {
+        unsigned int scaledHue = (inHue * 6);
+        unsigned int sector = scaledHue >> 8; // sector 0 to 5 around the color wheel
+        unsigned int offsetInSector = scaledHue - (sector << 8);	// position within the sector
+        unsigned int p = (inBrightness * ( 255 - inSaturation )) >> 8;
+        unsigned int q = (inBrightness * ( 255 - ((inSaturation * offsetInSector) >> 8) )) >> 8;
+        unsigned int t = (inBrightness * ( 255 - ((inSaturation * ( 255 - offsetInSector )) >> 8) )) >> 8;
+
+        switch( sector ) {
+        case 0:
+            *oR = inBrightness;
+            *oG = t;
+            *oB = p;
+            break;
+        case 1:
+            *oR = q;
+            *oG = inBrightness;
+            *oB = p;
+            break;
+        case 2:
+            *oR = p;
+            *oG = inBrightness;
+            *oB = t;
+            break;
+        case 3:
+            *oR = p;
+            *oG = q;
+            *oB = inBrightness;
+            break;
+        case 4:
+            *oR = t;
+            *oG = p;
+            *oB = inBrightness;
+            break;
+        default:    // case 5:
+            *oR = inBrightness;
+            *oG = p;
+            *oB = q;
+            break;
+        }
+    }
+}
+
 /*
 Simple demonstration, shows two cubes in perspective 3D.
 */
@@ -60,11 +113,22 @@ int main (int argc, char *argv[])
 
 	int frames = 0;
 
+	int hue = 0;
+	int saturation = 255;
+	int brightness = 255;
+
 	while(1) {
 		olLoadIdentity3();
 		olLoadIdentity();
 		olPerspective(60, 1, 1, 100);
 		olTranslate3(0, 0, -3);
+
+		hue = (hue + 1) % 255;
+
+		unsigned int r,g,b;
+		HSBToRGB(hue, saturation, brightness, &r, &g, &b);
+
+		int color = (b) + (g<<8) + (r<<16);
 
 		for(i=0; i<2; i++) {
 			olScale3(0.6, 0.6, 0.6);
@@ -74,31 +138,31 @@ int main (int argc, char *argv[])
 			olRotate3X(time * M_PI * 0.73);
 
 			olBegin(OL_LINESTRIP);
-			olVertex3(-1, -1, -1, C_WHITE);
-			olVertex3( 1, -1, -1, C_WHITE);
-			olVertex3( 1,  1, -1, C_WHITE);
-			olVertex3(-1,  1, -1, C_WHITE);
-			olVertex3(-1, -1, -1, C_WHITE);
-			olVertex3(-1, -1,  1, C_WHITE);
+			olVertex3(-1, -1, -1, color);
+			olVertex3( 1, -1, -1, color);
+			olVertex3( 1,  1, -1, color);
+			olVertex3(-1,  1, -1, color);
+			olVertex3(-1, -1, -1, color);
+			olVertex3(-1, -1,  1, color);
 			olEnd();
 
 			olBegin(OL_LINESTRIP);
-			olVertex3( 1,  1,  1, C_WHITE);
-			olVertex3(-1,  1,  1, C_WHITE);
-			olVertex3(-1, -1,  1, C_WHITE);
-			olVertex3( 1, -1,  1, C_WHITE);
-			olVertex3( 1,  1,  1, C_WHITE);
-			olVertex3( 1,  1, -1, C_WHITE);
+			olVertex3( 1,  1,  1, color);
+			olVertex3(-1,  1,  1, color);
+			olVertex3(-1, -1,  1, color);
+			olVertex3( 1, -1,  1, color);
+			olVertex3( 1,  1,  1, color);
+			olVertex3( 1,  1, -1, color);
 			olEnd();
 
 			olBegin(OL_LINESTRIP);
-			olVertex3( 1, -1, -1, C_WHITE);
-			olVertex3( 1, -1,  1, C_WHITE);
+			olVertex3( 1, -1, -1, color);
+			olVertex3( 1, -1,  1, color);
 			olEnd();
 
 			olBegin(OL_LINESTRIP);
-			olVertex3(-1,  1,  1, C_WHITE);
-			olVertex3(-1,  1, -1, C_WHITE);
+			olVertex3(-1,  1,  1, color);
+			olVertex3(-1,  1, -1, color);
 			olEnd();
 
 		}

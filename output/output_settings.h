@@ -42,6 +42,8 @@ public slots:
 	void on_outputEnable_toggled(bool state);
 	void on_blankingEnable_toggled(bool state);
 	void on_blankingInvert_toggled(bool state);
+	void on_colorMode_currentIndexChanged(int index);
+	void on_colorChannels_currentIndexChanged(int index);
 	void on_xEnable_toggled(bool state);
 	void on_yEnable_toggled(bool state);
 	void on_xInvert_toggled(bool state);
@@ -53,10 +55,23 @@ public slots:
 	void on_enforceSafety_toggled(bool state);
 	void on_outputTest_pressed();
 	void on_outputTest_released();
-	void on_powerSlider_valueChanged(int value);
-	void on_offsetSlider_valueChanged(int value);
-	void on_delaySlider_valueChanged(int value);
-	void on_sizeSlider_valueChanged(int value);
+	void on_redEnable_toggled(bool state);
+	void on_redMaxBox_valueChanged(int value);
+	void on_redMinBox_valueChanged(int value);
+	void on_redBlankBox_valueChanged(int value);
+	void on_redDelayBox_valueChanged(int value);
+	void on_greenEnable_toggled(bool state);
+	void on_greenMaxBox_valueChanged(int value);
+	void on_greenMinBox_valueChanged(int value);
+	void on_greenBlankBox_valueChanged(int value);
+	void on_greenDelayBox_valueChanged(int value);
+	void on_blueEnable_toggled(bool state);
+	void on_blueMaxBox_valueChanged(int value);
+	void on_blueMinBox_valueChanged(int value);
+	void on_blueBlankBox_valueChanged(int value);
+	void on_blueDelayBox_valueChanged(int value);
+	void on_powerBox_valueChanged(int value);
+	void on_sizeBox_valueChanged(int value);
 	void on_resetTransform_clicked();
 
 	void resizeEvent (QResizeEvent * event);

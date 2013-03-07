@@ -32,6 +32,59 @@ float audiotime;
 #define BPM 135
 #define AB (135.0/60.0)
 
+void HSBToRGB(
+    unsigned int inHue, unsigned int inSaturation, unsigned int inBrightness,
+    unsigned int *oR, unsigned int *oG, unsigned int *oB )
+{
+    if (inSaturation == 0)
+    {
+        // achromatic (grey)
+        *oR = *oG = *oB = inBrightness;
+    }
+    else
+    {
+        unsigned int scaledHue = (inHue * 6);
+        unsigned int sector = scaledHue >> 8; // sector 0 to 5 around the color wheel
+        unsigned int offsetInSector = scaledHue - (sector << 8);	// position within the sector
+        unsigned int p = (inBrightness * ( 255 - inSaturation )) >> 8;
+        unsigned int q = (inBrightness * ( 255 - ((inSaturation * offsetInSector) >> 8) )) >> 8;
+        unsigned int t = (inBrightness * ( 255 - ((inSaturation * ( 255 - offsetInSector )) >> 8) )) >> 8;
+
+        switch( sector ) {
+        case 0:
+            *oR = inBrightness;
+            *oG = t;
+            *oB = p;
+            break;
+        case 1:
+            *oR = q;
+            *oG = inBrightness;
+            *oB = p;
+            break;
+        case 2:
+            *oR = p;
+            *oG = inBrightness;
+            *oB = t;
+            break;
+        case 3:
+            *oR = p;
+            *oG = q;
+            *oB = inBrightness;
+            break;
+        case 4:
+            *oR = t;
+            *oG = p;
+            *oB = inBrightness;
+            break;
+        default:    // case 5:
+            *oR = inBrightness;
+            *oG = p;
+            *oB = q;
+            break;
+        }
+    }
+}
+
 float render(void)
 {
 	ftime = olRenderFrame(150);
@@ -113,31 +166,31 @@ void render_cubes(float time)
 		olRotate3X(mult*time * M_PI * 0.73 / 3.0);
 
 		olBegin(OL_LINESTRIP);
-		olVertex3(-1, -1, -1, C_WHITE);
-		olVertex3( 1, -1, -1, C_WHITE);
-		olVertex3( 1,  1, -1, C_WHITE);
-		olVertex3(-1,  1, -1, C_WHITE);
-		olVertex3(-1, -1, -1, C_WHITE);
-		olVertex3(-1, -1,  1, C_WHITE);
+		olVertex3(-1, -1, -1, C_RED);
+		olVertex3( 1, -1, -1, C_RED);
+		olVertex3( 1,  1, -1, C_RED);
+		olVertex3(-1,  1, -1, C_RED);
+		olVertex3(-1, -1, -1, C_RED);
+		olVertex3(-1, -1,  1, C_RED);
 		olEnd();
 
 		olBegin(OL_LINESTRIP);
-		olVertex3( 1,  1,  1, C_WHITE);
-		olVertex3(-1,  1,  1, C_WHITE);
-		olVertex3(-1, -1,  1, C_WHITE);
-		olVertex3( 1, -1,  1, C_WHITE);
-		olVertex3( 1,  1,  1, C_WHITE);
-		olVertex3( 1,  1, -1, C_WHITE);
+		olVertex3( 1,  1,  1, C_GREEN);
+		olVertex3(-1,  1,  1, C_GREEN);
+		olVertex3(-1, -1,  1, C_GREEN);
+		olVertex3( 1, -1,  1, C_GREEN);
+		olVertex3( 1,  1,  1, C_GREEN);
+		olVertex3( 1,  1, -1, C_GREEN);
 		olEnd();
 
 		olBegin(OL_LINESTRIP);
-		olVertex3( 1, -1, -1, C_WHITE);
-		olVertex3( 1, -1,  1, C_WHITE);
+		olVertex3( 1, -1, -1, C_RED);
+		olVertex3( 1, -1,  1, C_RED);
 		olEnd();
 
 		olBegin(OL_LINESTRIP);
-		olVertex3(-1,  1,  1, C_WHITE);
-		olVertex3(-1,  1, -1, C_WHITE);
+		olVertex3(-1,  1,  1, C_GREEN);
+		olVertex3(-1,  1, -1, C_GREEN);
 		olEnd();
 
 		/*olBegin(OL_BEZIERSTRIP);
@@ -289,19 +342,19 @@ void render_fire(float left)
 	olScale(2.0f/256.0f, 2.0f/256.0f);
 
 	olPushColor();
-	olMultColor(C_GREY(100));
+	olMultColor(C_RED+C_GREEN_I(150));
 	trace(&mbuf[0][0], &mtmp[0][0], 200, 256, 235, 2);
 	olPopColor();
 	olPushColor();
-	olMultColor(C_GREY(150));
+	olMultColor(C_RED+C_GREEN_I(100));
 	trace(&mbuf[0][0], &mtmp[0][0], 250, 256, 235, 2);
 	olPopColor();
 	olPushColor();
-	olMultColor(C_GREY(200));
+	olMultColor(C_RED+C_GREEN_I(50));
 	trace(&mbuf[0][0], &mtmp[0][0], 300, 256, 235, 2);
 	olPopColor();
 	olPushColor();
-	olMultColor(C_GREY(250));
+	olMultColor(C_RED+C_GREEN_I(0));
 	trace(&mbuf[0][0], &mtmp[0][0], 400, 256, 235, 2);
 	olPopColor();
 	olPopMatrix();
@@ -660,7 +713,7 @@ void DoTitle(float limit)
 
 #define NUM_STARS 100
 
-float stars[NUM_STARS][4];
+float stars[NUM_STARS][5];
 
 void cart_rnd_star(int id)
 {
@@ -679,9 +732,15 @@ void render_stars(void)
 		float a = stars[i][1];
 		float x = sinf(a)*r;
 		float y = cosf(a)*r;
-		uint32_t color = C_WHITE;
-		if ((stars[i][2]*stars[i][3]) < 20)
-			color = C_GREY((int)(12.70*(stars[i][2]*stars[i][3])));
+
+		unsigned int brightness=255;
+                if ((stars[i][2]*stars[i][3]) < 20)
+                        brightness = (int)(12.70*(stars[i][2]*stars[i][3]));
+
+                unsigned int red,green,blue;
+                HSBToRGB(stars[i][4], 255, brightness, &red, &green, &blue);
+                uint32_t color = (blue) + (green<<8) + (red<<16);
+
 		olDot(x,y,(int)stars[i][2],color);
 	}
 }
@@ -759,6 +818,8 @@ void DoStars(float limit)
 		stars[i][1] = randf(2*M_PI);
 		stars[i][2] = 0;
 		stars[i][3] = 0;
+		stars[i][4] = randf(255);
+
 	}
 
 	ftime = 0;
@@ -889,9 +950,9 @@ void DoTunnel(float limit)
 		float left = (limit-audiotime)/AB;
 		olResetColor();
 		if (ctime < 2.0)
-			olMultColor(C_GREY((int)(255*ctime/2)));
+			olMultColor(C_RED+C_GREEN_I((int)(255*ctime/2)));
 		else if (left < 2.0)
-			olMultColor(C_GREY((int)(255*left/2)));
+			olMultColor(C_BLUE+C_RED_I((int)(255*left/2)));
 
 		olLoadIdentity3();
 		olPerspective(45, 1, 1, 100);
@@ -917,9 +978,9 @@ void DoTunnel(float limit)
 
 				for(j=0;j<11;j++) {
 					float theta = j/5.0*M_PI;
-					uint32_t c = C_WHITE;
+					uint32_t c = C_RED;
 					if(i==9) {
-						c = C_GREY((int)(255 * z/dz));
+						c = C_RED+C_BLUE_I((int)(255 * z/dz));
 					}
 					olVertex3(sinf(theta), cosf(theta), 0, c);
 					//olVertex3(j/11.0,0,0,C_WHITE);
@@ -938,7 +999,7 @@ void DoTunnel(float limit)
 					olPushMatrix3();
 					olTranslate3(0,0,dz*i);
 					tunnel_xform(rz+dz*(i+id));
-					olVertex3(sinf(theta), cosf(theta), 0, C_WHITE);
+					olVertex3(sinf(theta), cosf(theta), 0, C_GREEN);
 					olPopMatrix3();
 				}
 			}

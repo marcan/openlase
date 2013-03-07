@@ -35,6 +35,9 @@ enum {
 #define C_BLACK 0x000000
 
 #define C_GREY(x)   (0x010101 * ((int)(x)))
+#define C_RED_I(x)   (0x010000 * ((int)(x)))
+#define C_GREEN_I(x)   (0x000100 * ((int)(x)))
+#define C_BLUE_I(x)   (0x000001 * ((int)(x)))
 
 enum {
 	RENDER_GRAYSCALE = 1,

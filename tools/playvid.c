@@ -57,6 +57,7 @@ is a hack.
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavresample/avresample.h>
+#include <libavutil/opt.h>
 
 #define FRAMES_BUF 8
 
@@ -75,6 +76,7 @@ AVAudioResampleContext *resampler;
 int buffered_samples;
 float resampleAudioBuffer[AUDIO_BUF];
 float *resampleOutput[] = {resampleAudioBuffer, (float *)0};
+float *pAudioBuffer;
 
 float volume = 0.8;
 
@@ -114,7 +116,6 @@ void moreaudio(float *lb, float *rb, int samples)
 {
 	AVPacket packet;
 	int decoded_frame;
-	float *pAudioBuffer;
 	while (samples)
 	{
 		if (buffered_samples <= 0) {
@@ -128,7 +129,6 @@ void moreaudio(float *lb, float *rb, int samples)
 				}
 			} while(packet.stream_index!=audioStream);
 
-			int bytes = AUDIO_BUF * sizeof(short);
 			pAudioFrame->nb_samples = AUDIO_BUF;
 			pACodecCtx->get_buffer(pACodecCtx, pAudioFrame);
 			avcodec_decode_audio4(pACodecCtx, pAudioFrame, &decoded_frame, &packet);
@@ -139,7 +139,7 @@ void moreaudio(float *lb, float *rb, int samples)
 			}
 
 			buffered_samples = avresample_convert(resampler,
-				(float **)resampleOutput, 0, pAudioFrame->nb_samples,
+				(uint8_t **)resampleOutput, 0, pAudioFrame->nb_samples,
 				pAudioFrame->data, pAudioFrame->linesize[0], pAudioFrame->nb_samples);
 
 			pAudioBuffer = resampleOutput[0];
@@ -160,7 +160,7 @@ int	 av_vid_init(char *file)
 	if (avformat_open_input(&pFormatCtx, file, NULL, NULL)!=0)
 		return -1;
 
-	if (av_find_stream_info(pFormatCtx)<0)
+	if (avformat_find_stream_info(pFormatCtx, NULL)<0)
 		return -1;
 
 	//dump_format(pFormatCtx, 0, file, 0);
@@ -181,7 +181,7 @@ int	 av_vid_init(char *file)
 	if (pCodec==NULL)
 		return -1;
 
-	if (avcodec_open(pCodecCtx, pCodec)<0)
+	if (avcodec_open2(pCodecCtx, pCodec, NULL)<0)
 		return -1;
 
 	pFrame=avcodec_alloc_frame();
@@ -228,12 +228,13 @@ int av_aud_init(char *file)
 	av_opt_set_int(resampler, "in_sample_rate", pACodecCtx->sample_rate, 0);
 	av_opt_set_int(resampler, "out_sample_rate", 48000, 0);
 	av_opt_set_int(resampler, "in_sample_fmt", pACodecCtx->sample_fmt, 0);
-	av_opt_set_int(resampler, "out_sample_fmt", AV_SAMPLE_FMT_FLT);
+	av_opt_set_int(resampler, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0);
 
 	if (avresample_open(resampler))
 		return -1;
 
 	buffered_samples = 0;
+	pAudioBuffer = resampleOutput[0];
 
 	return 0;
 }
@@ -246,11 +247,12 @@ int av_deinit(void)
 	avcodec_close(pCodecCtx);
 	avcodec_close(pACodecCtx);
 
-	audio_resample_close(resampler);
+	// Close the resamplers
+	avresample_close(resampler);
 
 	// Close the video file
-	av_close_input_file(pFormatCtx);
-	av_close_input_file(pAFormatCtx);
+	avformat_close_input(&pFormatCtx);
+	avformat_close_input(&pAFormatCtx);
 
 	return 0;
 }
@@ -478,7 +480,6 @@ int main (int argc, char *argv[])
 		vidtime += frametime;
 
 		int thresh;
-		int obj;
 		int bsum = 0;
 		int c;
 		for (c=edge_off; c<(pCodecCtx->width-edge_off); c++) {
@@ -505,7 +506,7 @@ int main (int argc, char *argv[])
 		tparams.threshold = thresh;
 		olTraceReInit(trace_ctx, &tparams);
 		olTraceFree(&result);
-		obj = olTrace(trace_ctx, frame->data[0], frame->linesize[0], &result);
+		olTrace(trace_ctx, frame->data[0], frame->linesize[0], &result);
 
 		do {
 			int i, j;

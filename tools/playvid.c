@@ -2,6 +2,7 @@
         OpenLase - a realtime laser graphics toolkit
 
 Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
+Copyright (C) 2013 Sergiusz "q3k" Bazański <q3k@q3k.org>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -55,24 +56,25 @@ is a hack.
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavresample/avresample.h>
 
 #define FRAMES_BUF 8
 
 #define AUDIO_BUF AVCODEC_MAX_AUDIO_FRAME_SIZE
 
-AVFormatContext *pFormatCtx;
-AVFormatContext *pAFormatCtx;
-AVCodecContext  *pCodecCtx;
-AVCodecContext  *pACodecCtx;
-AVCodec         *pCodec;
-AVCodec         *pACodec;
-AVFrame         *pFrame;
-ReSampleContext *resampler;
+AVFormatContext        *pFormatCtx = NULL;
+AVFormatContext        *pAFormatCtx = NULL;
+AVCodecContext         *pCodecCtx;
+AVCodecContext         *pACodecCtx;
+AVCodec                *pCodec;
+AVCodec                *pACodec;
+AVFrame         	   *pFrame;
+AVFrame 			   *pAudioFrame;
+AVAudioResampleContext *resampler;
 
 int buffered_samples;
-float *poabuf;
-float oabuf[AUDIO_BUF];
-short iabuf[AUDIO_BUF];
+float resampleAudioBuffer[AUDIO_BUF];
+float *resampleOutput[] = {resampleAudioBuffer, (float *)0};
 
 float volume = 0.8;
 
@@ -111,11 +113,12 @@ int GetNextFrame(AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx,
 void moreaudio(float *lb, float *rb, int samples)
 {
 	AVPacket packet;
-	int bytes, bytesDecoded;
-	int input_samples;
+	int decoded_frame;
+	float *pAudioBuffer;
 	while (samples)
 	{
-		if (!buffered_samples) {
+		if (buffered_samples <= 0) {
+			//printf("buffering samples!\n");
 			do {
 				if(av_read_frame(pAFormatCtx, &packet)<0) {
 					fprintf(stderr, "Audio EOF!\n");
@@ -125,24 +128,27 @@ void moreaudio(float *lb, float *rb, int samples)
 				}
 			} while(packet.stream_index!=audioStream);
 
-			bytes = AUDIO_BUF * sizeof(short);
-
-			bytesDecoded = avcodec_decode_audio3(pACodecCtx, iabuf, &bytes, &packet);
-			if(bytesDecoded < 0)
+			int bytes = AUDIO_BUF * sizeof(short);
+			pAudioFrame->nb_samples = AUDIO_BUF;
+			pACodecCtx->get_buffer(pACodecCtx, pAudioFrame);
+			avcodec_decode_audio4(pACodecCtx, pAudioFrame, &decoded_frame, &packet);
+			if(!decoded_frame)
 			{
 				fprintf(stderr, "Error while decoding audio frame\n");
 				return;
 			}
 
-			input_samples = bytes / (sizeof(short)*pACodecCtx->channels);
+			buffered_samples = avresample_convert(resampler,
+				(float **)resampleOutput, 0, pAudioFrame->nb_samples,
+				pAudioFrame->data, pAudioFrame->linesize[0], pAudioFrame->nb_samples);
 
-			buffered_samples = audio_resample(resampler, (void*)oabuf, iabuf, input_samples);
-			poabuf = oabuf;
+			pAudioBuffer = resampleOutput[0];
 		}
 
-		*lb++ = *poabuf++ * volume;
-		*rb++ = *poabuf++ * volume;
+		*lb++ = *pAudioBuffer++ * volume;
+		*rb++ = *pAudioBuffer++ * volume;
 		buffered_samples--;
+		
 		samples--;
 	}
 }
@@ -151,13 +157,13 @@ int	 av_vid_init(char *file)
 {
 	int i;
 
-	if (av_open_input_file(&pFormatCtx, file, NULL, 0, NULL)!=0)
+	if (avformat_open_input(&pFormatCtx, file, NULL, NULL)!=0)
 		return -1;
 
 	if (av_find_stream_info(pFormatCtx)<0)
 		return -1;
 
-	dump_format(pFormatCtx, 0, file, 0);
+	//dump_format(pFormatCtx, 0, file, 0);
 
 	videoStream=-1;
 	for (i=0; i<pFormatCtx->nb_streams; i++) {
@@ -189,10 +195,10 @@ int av_aud_init(char *file)
 
 	av_register_all();
 
-	if (av_open_input_file(&pAFormatCtx, file, NULL, 0, NULL)!=0)
+	if (avformat_open_input(&pAFormatCtx, file, NULL, NULL)!=0)
 		return -1;
 
-	if (av_find_stream_info(pAFormatCtx)<0)
+	if (avformat_find_stream_info(pAFormatCtx, NULL)<0)
 		return -1;
 
 	audioStream=-1;
@@ -206,20 +212,25 @@ int av_aud_init(char *file)
 		return -1;
 
 	pACodecCtx=pAFormatCtx->streams[audioStream]->codec;
+	pAudioFrame = avcodec_alloc_frame();
+
 
 	pACodec=avcodec_find_decoder(pACodecCtx->codec_id);
 	if (pACodec==NULL)
 		return -1;
 
-	if (avcodec_open(pACodecCtx, pACodec)<0)
+	if (avcodec_open2(pACodecCtx, pACodec, NULL)<0)
 		return -1;
 
-	resampler = av_audio_resample_init(2, pACodecCtx->channels,
-									   48000, pACodecCtx->sample_rate,
-									   SAMPLE_FMT_FLT, pACodecCtx->sample_fmt,
-									   16, 10, 0, 0.8);
+	resampler = avresample_alloc_context();
+	av_opt_set_int(resampler, "in_channel_layout", pACodecCtx->channel_layout, 0);
+	av_opt_set_int(resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
+	av_opt_set_int(resampler, "in_sample_rate", pACodecCtx->sample_rate, 0);
+	av_opt_set_int(resampler, "out_sample_rate", 48000, 0);
+	av_opt_set_int(resampler, "in_sample_fmt", pACodecCtx->sample_fmt, 0);
+	av_opt_set_int(resampler, "out_sample_fmt", AV_SAMPLE_FMT_FLT);
 
-	if (!resampler)
+	if (avresample_open(resampler))
 		return -1;
 
 	buffered_samples = 0;

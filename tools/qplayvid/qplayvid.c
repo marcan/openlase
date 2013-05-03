@@ -111,10 +111,8 @@ struct PlayerCtx {
 	double last_frame_pts;
 	struct SwsContext *v_sws_ctx;
 
-	int a_stride;
 	AVFrame *a_frame;
 	short *a_resample_output[2];
-	int a_ch;
 	AudioSample *a_buf;
 	int a_buf_len;
 	int a_buf_get;
@@ -172,7 +170,6 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	for (i = 0; i < out_samples; i++) {
 		ctx->a_buf[put].l = *rbuf++;
 		ctx->a_buf[put].r = *rbuf++;
-		rbuf += ctx->a_ch - 2;
 		ctx->a_buf[put].seekid = seekid;
 		ctx->a_buf[put].pts = ctx->a_cur_pts;
 		put++;
@@ -465,8 +462,6 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 		printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
 
-		ctx->a_ch = 2;
-
 		ctx->a_frame = avcodec_alloc_frame();
 		ctx->a_resampler = avresample_alloc_context();
 		av_opt_set_int(ctx->a_resampler, "in_channel_layout", ctx->a_codec_ctx->channel_layout, 0);
@@ -480,10 +475,7 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 		ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;
 
-		ctx->a_stride = av_get_bytes_per_sample(ctx->a_codec_ctx->sample_fmt);
-		ctx->a_stride *= ctx->a_ch;
-
-		ctx->a_resample_output[0] = malloc(ctx->a_ch * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
+		ctx->a_resample_output[0] = malloc(2 * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
 		ctx->a_resample_output[1] = 0;
 		ctx->a_buf_len = AUDIO_BUF*SAMPLE_RATE;
 		ctx->a_buf = malloc(sizeof(*ctx->a_buf) * ctx->a_buf_len);

@@ -2,6 +2,7 @@
         OpenLase - a realtime laser graphics toolkit
 
 Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
+Copyright (C) 2013 Sergiusz "q3k" Bazański <q3k@q3k.org>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
+#include <libavresample/avresample.h>
 #include <libswscale/swscale.h>
 
 #define OL_FRAMES_BUF 5
@@ -89,7 +91,7 @@ struct PlayerCtx {
 	AVStream *a_stream;
 	AVCodecContext *a_codec_ctx;
 	AVCodec *a_codec;
-	ReSampleContext *a_resampler;
+	AVAudioResampleContext *a_resampler;
 	double a_ratio;
 
 	AVStream *v_stream;
@@ -109,8 +111,8 @@ struct PlayerCtx {
 	struct SwsContext *v_sws_ctx;
 
 	int a_stride;
-	short *a_ibuf;
-	short *a_rbuf;
+	AVFrame *a_frame;
+	float *a_resample_output[2];
 	int a_ch;
 	AudioSample *a_buf;
 	int a_buf_len;
@@ -128,22 +130,21 @@ struct PlayerCtx {
 
 size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t seekid)
 {
-	int bytes = ctx->a_stride * AVCODEC_MAX_AUDIO_FRAME_SIZE;
-	int decoded;
-
-	decoded = avcodec_decode_audio3(ctx->a_codec_ctx, ctx->a_ibuf, &bytes, packet);
-	if (decoded < 0) {
+	int decoded, got_frame;
+	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+	ctx->a_codec_ctx->get_buffer(ctx->a_codec_ctx, ctx->a_frame);
+	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
+	if (!got_frame) {
 		fprintf(stderr, "Error while decoding audio frame\n");
 		return packet->size;
 	}
-	int in_samples = bytes / ctx->a_stride;
+	int in_samples = ctx->a_frame->nb_samples;
 	if (!in_samples)
 		return decoded;
 
-
-	int out_samples;
-	out_samples = audio_resample(ctx->a_resampler, ctx->a_rbuf, ctx->a_ibuf, in_samples);
-
+	int out_samples = avresample_convert(ctx->a_resampler,
+		(uint8_t **)ctx->a_resample_output, 0, in_samples,
+		ctx->a_frame->data, ctx->a_frame->linesize[0], in_samples);
 	pthread_mutex_lock(&ctx->a_buf_mutex);
 
 	int free_samples;
@@ -153,7 +154,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 			free_samples += ctx->a_buf_len;
 
 		if (free_samples <= out_samples) {
-			printf("Wait for space in audio buffer\n");
+			printf("Wait for space in audio buffer (get: %i put: %i)\n", ctx->a_buf_get, ctx->a_buf_put);
 			pthread_cond_wait(&ctx->a_buf_not_full, &ctx->a_buf_mutex);
 		} else {
 			break;
@@ -165,7 +166,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 		ctx->a_cur_pts = av_q2d(ctx->a_stream->time_base) * packet->pts;
 
 	int put = ctx->a_buf_put;
-	short *rbuf = ctx->a_rbuf;
+	short *rbuf = ctx->a_resample_output[0];
 	int i;
 	for (i = 0; i < out_samples; i++) {
 		ctx->a_buf[put].l = *rbuf++;
@@ -413,12 +414,12 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		file += 10;
 	}
 
-	if (av_open_input_file(&ctx->fmt_ctx, file, NULL, 0, NULL) != 0) {
+	if (avformat_open_input(&ctx->fmt_ctx, file, NULL, NULL) != 0) {
 		printf("Couldn't open input file %s\n", file);
 		return -1;
 	}
 
-	if (av_find_stream_info(ctx->fmt_ctx) < 0) {
+	if (avformat_find_stream_info(ctx->fmt_ctx, NULL) < 0) {
 		printf("Couldn't get stream info\n");
 		return -1;
 	}
@@ -456,7 +457,7 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 			return -1;
 			printf("No audio codec\n");
 		}
-		if (avcodec_open(ctx->a_codec_ctx, ctx->a_codec) < 0) {
+		if (avcodec_open2(ctx->a_codec_ctx, ctx->a_codec, NULL) < 0) {
 			printf("Failed to open audio codec\n");
 			return -1;
 		}
@@ -464,25 +465,30 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
 
 		ctx->a_ch = 2;
-		if (ctx->a_codec_ctx->channels > 2)
-			ctx->a_ch = ctx->a_codec_ctx->channels;
 
-		ctx->a_resampler = av_audio_resample_init(ctx->a_ch, ctx->a_codec_ctx->channels,
-								SAMPLE_RATE, ctx->a_codec_ctx->sample_rate,
-								SAMPLE_FMT_S16, ctx->a_codec_ctx->sample_fmt,
-								16, 10, 0, 0.8);
-		if (!ctx->a_resampler)
+		ctx->a_frame = avcodec_alloc_frame();
+		printf("audio frame: %i\n", ctx->a_frame);
+		ctx->a_resampler = avresample_alloc_context();
+		av_opt_set_int(ctx->a_resampler, "in_channel_layout", ctx->a_codec_ctx->channel_layout, 0);
+		av_opt_set_int(ctx->a_resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
+		av_opt_set_int(ctx->a_resampler, "in_sample_rate", ctx->a_codec_ctx->sample_rate, 0);
+		av_opt_set_int(ctx->a_resampler, "out_sample_rate", SAMPLE_RATE, 0);
+		av_opt_set_int(ctx->a_resampler, "in_sample_fmt", ctx->a_codec_ctx->sample_fmt, 0);
+		av_opt_set_int(ctx->a_resampler, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
+		if (avresample_open(ctx->a_resampler))
 			return -1;
 
 		ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;
 
 		ctx->a_stride = av_get_bits_per_sample_fmt(ctx->a_codec_ctx->sample_fmt) / 8;
-		ctx->a_stride *= ctx->a_codec_ctx->channels;
+		ctx->a_stride *= ctx->a_ch;
 
-		ctx->a_ibuf = malloc(ctx->a_stride * AVCODEC_MAX_AUDIO_FRAME_SIZE);
-		ctx->a_rbuf = malloc(ctx->a_ch * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
+		ctx->a_resample_output[0] = malloc(ctx->a_ch * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
+		ctx->a_resample_output[1] = 0;
 		ctx->a_buf_len = AUDIO_BUF*SAMPLE_RATE;
 		ctx->a_buf = malloc(sizeof(*ctx->a_buf) * ctx->a_buf_len);
+		ctx->a_buf_put = 0;
+		ctx->a_buf_get = 0;
 
 		pthread_mutex_init(&ctx->a_buf_mutex, NULL);
 		pthread_cond_init(&ctx->a_buf_not_full, NULL);
@@ -500,7 +506,7 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		return -1;
 	}
 
-	if (avcodec_open(ctx->v_codec_ctx, ctx->v_codec) < 0) {
+	if (avcodec_open2(ctx->v_codec_ctx, ctx->v_codec, NULL) < 0) {
 		printf("Failed to open video codec\n");
 		return -1;
 	}

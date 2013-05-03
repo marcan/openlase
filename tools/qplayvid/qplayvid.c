@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
 #include <libavresample/avresample.h>
+#include <libavutil/opt.h>
 #include <libswscale/swscale.h>
 
 #define OL_FRAMES_BUF 5
@@ -112,7 +113,7 @@ struct PlayerCtx {
 
 	int a_stride;
 	AVFrame *a_frame;
-	float *a_resample_output[2];
+	short *a_resample_output[2];
 	int a_ch;
 	AudioSample *a_buf;
 	int a_buf_len;
@@ -277,7 +278,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	pict.data[0] = frame->data;
 	pict.linesize[0] = frame->stride;
 
-	sws_scale(ctx->v_sws_ctx, ctx->v_frame->data, ctx->v_frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+	sws_scale(ctx->v_sws_ctx, (const uint8_t* const*)ctx->v_frame->data, ctx->v_frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 
 	frame->pts = av_q2d(ctx->v_stream->time_base) * pts;
 	frame->seekid = seekid;
@@ -414,7 +415,7 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		file += 10;
 	}
 
-	if (avformat_open_input(&ctx->fmt_ctx, file, NULL, NULL) != 0) {
+	if (avformat_open_input(&ctx->fmt_ctx, file, format, NULL) != 0) {
 		printf("Couldn't open input file %s\n", file);
 		return -1;
 	}
@@ -467,7 +468,6 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		ctx->a_ch = 2;
 
 		ctx->a_frame = avcodec_alloc_frame();
-		printf("audio frame: %i\n", ctx->a_frame);
 		ctx->a_resampler = avresample_alloc_context();
 		av_opt_set_int(ctx->a_resampler, "in_channel_layout", ctx->a_codec_ctx->channel_layout, 0);
 		av_opt_set_int(ctx->a_resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
@@ -480,7 +480,7 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 		ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;
 
-		ctx->a_stride = av_get_bits_per_sample_fmt(ctx->a_codec_ctx->sample_fmt) / 8;
+		ctx->a_stride = av_get_bytes_per_sample(ctx->a_codec_ctx->sample_fmt);
 		ctx->a_stride *= ctx->a_ch;
 
 		ctx->a_resample_output[0] = malloc(ctx->a_ch * sizeof(short) * AVCODEC_MAX_AUDIO_FRAME_SIZE * (ctx->a_ratio * 1.1));
@@ -576,7 +576,7 @@ void drop_all_video(PlayerCtx *ctx)
 {
 	if (ctx->cur_frame && ctx->cur_frame->seekid == -ctx->cur_seekid) {
 		printf("No more video (EOF)\n");
-		return 0;
+		return;
 	}
 	pthread_mutex_lock(&ctx->v_buf_mutex);
 	int last = (ctx->v_buf_put + ctx->v_buf_len - 1) % ctx->v_buf_len;

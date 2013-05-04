@@ -139,9 +139,8 @@ void moreaudio(float *lb, float *rb, int samples)
 			}
 
 			buffered_samples = avresample_convert(resampler,
-				(uint8_t **)resampleOutput, 0, pAudioFrame->nb_samples,
+				(uint8_t **)resampleOutput, 0, AUDIO_BUF,
 				pAudioFrame->data, pAudioFrame->linesize[0], pAudioFrame->nb_samples);
-
 			pAudioBuffer = resampleOutput[0];
 		}
 

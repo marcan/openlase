@@ -202,8 +202,6 @@ struct color palette[256] = {
 	{ 32,  32,  32}, { 21,  21,  21}, { 11,  11,  11}, {  0,   0,   0},
 };
 
-#define MONOCHROME
-
 int process (nframes_t nframes, void *arg)
 {
 	struct frame *frame = curdframe;

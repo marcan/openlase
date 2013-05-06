@@ -36,11 +36,15 @@ typedef jack_nframes_t nframes_t;
 
 jack_port_t *in_x;
 jack_port_t *in_y;
+jack_port_t *in_r;
 jack_port_t *in_g;
+jack_port_t *in_b;
 
 jack_port_t *out_x;
 jack_port_t *out_y;
+jack_port_t *out_r;
 jack_port_t *out_g;
+jack_port_t *out_b;
 jack_port_t *out_e;
 
 nframes_t rate, enable_period, enable_ctr;
@@ -48,10 +52,19 @@ nframes_t frames_dead;
 
 #define DEAD_TIME (rate/10)
 
+nframes_t ibuf_r = 0;
 nframes_t ibuf_g = 0;
+nframes_t ibuf_b = 0;
+sample_t buf_r[MAX_DELAY];
 sample_t buf_g[MAX_DELAY];
+sample_t buf_b[MAX_DELAY];
 
 output_config_t *cfg;
+
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
 
 static void generate_enable(sample_t *buf, nframes_t nframes)
 {
@@ -120,24 +133,40 @@ static inline void filter(float *x, float *y)
 	cfilter(y,&py);
 }
 
+static inline float scale_color(float c, float c_max, float c_min, float blank, float power)
+{
+	if ( c < 0.001 ) {
+		return blank;
+	}
+	else {
+		return (c * power * (c_max - c_min)) + c_min;
+	}
+}
+
 static int process (nframes_t nframes, void *arg)
 {
 	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
 	sample_t *o_y = (sample_t *) jack_port_get_buffer (out_y, nframes);
+	sample_t *o_r = (sample_t *) jack_port_get_buffer (out_r, nframes);
 	sample_t *o_g = (sample_t *) jack_port_get_buffer (out_g, nframes);
+	sample_t *o_b = (sample_t *) jack_port_get_buffer (out_b, nframes);
 	sample_t *o_e = (sample_t *) jack_port_get_buffer (out_e, nframes);
 	
 	sample_t *i_x = (sample_t *) jack_port_get_buffer (in_x, nframes);
 	sample_t *i_y = (sample_t *) jack_port_get_buffer (in_y, nframes);
+	sample_t *i_r = (sample_t *) jack_port_get_buffer (in_r, nframes);
 	sample_t *i_g = (sample_t *) jack_port_get_buffer (in_g, nframes);
+	sample_t *i_b = (sample_t *) jack_port_get_buffer (in_b, nframes);
 
 	nframes_t frm;
 
 	for (frm = 0; frm < nframes; frm++) {
-		sample_t x,y,g,orig_g;
+		sample_t x,y,r,g,b,orig_r,orig_g,orig_b;
 		x = *i_x++;
 		y = *i_y++;
+		r = orig_r = *i_r++;
 		g = orig_g = *i_g++;
+		b = orig_b = *i_b++;
 
 		y = -y;
 		transform(&x, &y);
@@ -165,19 +194,52 @@ static int process (nframes_t nframes, void *arg)
 			x *= cfg->size;
 			y *= cfg->size;
 		}
-		
-		if (cfg->blank_flags & BLANK_INVERT)
+	
+		if (cfg->blank_flags & BLANK_INVERT) {
+			r = 1.0f - r;
 			g = 1.0f - g;
-		if (!(cfg->blank_flags & BLANK_ENABLE))
+			b = 1.0f - b;
+		}
+		if (!cfg->outputRed || !cfg->outputGreen || !cfg->outputBlue) {
+			// no RBG so convert to monochrome via HLV using value
+			float v = max(r,max(g,b));
+			r = g = b = v;
+		}
+		if (!(cfg->blank_flags & BLANK_ENABLE)) {
+			r = 1.0f;
 			g = 1.0f;
-		if (!(cfg->blank_flags & OUTPUT_ENABLE))
+			b = 1.0f;
+		}
+		if (!(cfg->blank_flags & OUTPUT_ENABLE)) {
+			r = 0.0f;
 			g = 0.0f;
-		g *= cfg->power * (1.0f-cfg->offset);
-		g += cfg->offset;
+			b = 0.0f;
+		}
+		if (!cfg->redEnable || !cfg->outputRed) {
+			r = 0.0f;
+		}
+		if (!cfg->greenEnable || !cfg->outputGreen) {
+			g = 0.0f;
+		}
+		if (!cfg->blueEnable || !cfg->outputBlue) {
+			b = 0.0f;
+		}
+		if (!cfg->analogColor) {
+			// TTL color
+			r = (r >= 0.5f? 1.0f: 0.0f);
+			g = (g >= 0.5f? 1.0f: 0.0f);
+			b = (b >= 0.5f? 1.0f: 0.0f);
+		}
 
-		if(orig_g == 0.0f) {
+		r = scale_color(r, cfg->redMax, cfg->redMin, cfg->redBlank, cfg->power);
+		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
+		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);
+
+		if(orig_r == 0.0f && orig_g == 0.0f && orig_b == 0.0f) {
 			if(frames_dead >= DEAD_TIME) {
+				r = 0.0f;
 				g = 0.0f;
+				b = 0.0f;
 			} else {
 				frames_dead++;
 			}
@@ -189,9 +251,15 @@ static int process (nframes_t nframes, void *arg)
 		
 		*o_x++ = x;
 		*o_y++ = y;
+		buf_r[ibuf_r] = r;
 		buf_g[ibuf_g] = g;
-		*o_g++ = buf_g[(ibuf_g + MAX_DELAY - cfg->delay) % MAX_DELAY];
+		buf_b[ibuf_b] = b;
+		*o_r++ = buf_r[(ibuf_r + MAX_DELAY - cfg->redDelay) % MAX_DELAY];
+		*o_g++ = buf_g[(ibuf_g + MAX_DELAY - cfg->greenDelay) % MAX_DELAY];
+		*o_b++ = buf_b[(ibuf_b + MAX_DELAY - cfg->blueDelay) % MAX_DELAY];
+		ibuf_r = (ibuf_r + 1) % MAX_DELAY;
 		ibuf_g = (ibuf_g + 1) % MAX_DELAY;
+		ibuf_b = (ibuf_b + 1) % MAX_DELAY;
 	}
 	generate_enable(o_e, nframes);
 
@@ -246,10 +314,14 @@ int main (int argc, char *argv[])
 
 	in_x = jack_port_register (client, "in_x", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	in_y = jack_port_register (client, "in_y", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+	in_r = jack_port_register (client, "in_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	in_g = jack_port_register (client, "in_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+	in_b = jack_port_register (client, "in_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	out_x = jack_port_register (client, "out_x", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	out_y = jack_port_register (client, "out_y", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_r = jack_port_register (client, "out_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	out_g = jack_port_register (client, "out_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_b = jack_port_register (client, "out_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	out_e = jack_port_register (client, "out_e", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 
 	if (jack_activate (client)) {

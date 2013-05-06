@@ -20,7 +20,6 @@ import pylase as ol
 import threading
 import time
 import numpy as np
-import cv2
 import freenect
 import sys
 
@@ -37,7 +36,7 @@ class LaserThread(threading.Thread):
 		if self.die:
 			return
 
-		if ol.init(4) < 0:
+		if ol.init(3) < 0:
 			return
 		print "OL Initialized"
 		params = ol.RenderParams()
@@ -100,11 +99,6 @@ try:
 		#print objects
 
 		olt.trace = objects
-
-		#cv2.imshow("Depth", image)
-		#cv2.imshow("Floor", np.clip((floor * 250 / 6),0,255).astype(np.uint8))
-		#if cv2.waitKey(10) == 27:
-	#		break
 
 finally:
 	olt.die = True

@@ -113,33 +113,33 @@ olt.start()
 print "Thread running"
 
 try:
-	api = twitter.Api()
+	api = twitter.Twitter(domain="search.twitter.com")
 	since_id = None
 
 	tweets = []
 
 	while True:
 		try:
-			s = api.GetSearch(search, since_id=since_id, lang=None)
-		except:
+			s = api.search(q="#EE20")["results"]
+		except Exception, e:
 			olt.tweets = ["Twitter Error: NO FUNCIONA INTERNEEEEE!!!"]
 			time.sleep(1)
 			since_id = -1
 			tweets = []
-			print "Fetch error"
+			print e, "Fetch error"
 			continue
 
 		if len(s) == 0:
 			time.sleep(10)
 			continue
 		print "Fetched %d tweets"%len(s)
-		since_id = s[0].id
+		since_id = s[0]["id"]
 		tweets = s + tweets
 		tweets = tweets[:10]
 		strings = []
 		print "New tweetset:"
 		for t in tweets:
-			itext = u"@%s: %s"%(t.user.screen_name, t.text)
+			itext = u"@%s: %s"%(t["from_user_name"], t["text"])
 			itext = itext.replace("&gt;", ">").replace("&lt;", "<").replace("&quot;", '"').replace("\n", " ")
 			text = u""
 			for c in itext:

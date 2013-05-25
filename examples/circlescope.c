@@ -43,7 +43,7 @@ nframes_t rate;
 
 sample_t max_size = 1.0f;
 sample_t min_size = 0.2f;
-sample_t boost = 8;
+sample_t boost = 6;
 
 //float w = 110 * (2*M_PI);
 float w = 523.251131f / 4.0f * (2*M_PI) / 1;

@@ -264,6 +264,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 		fprintf(stderr, "stride mismatch: %d != %d\n", (int)frame->stride, ctx->v_frame->linesize[0]);
 		return decoded;
 	}
+	fprintf(stderr, "pix fmt: %d\n", ctx->v_codec_ctx->pix_fmt);
 
 	if (!ctx->v_sws_ctx) {
 		ctx->v_sws_ctx = sws_getContext(ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
@@ -341,7 +342,7 @@ void *decoder_thread(void *arg)
 			pthread_mutex_lock(&ctx->seek_mutex);
 			if (ctx->cur_seekid > seekid) {
 				printf("Seek! %f\n", ctx->seek_pos);
-				av_seek_frame(ctx->fmt_ctx, -1, (int)(ctx->seek_pos * AV_TIME_BASE), 0);
+				av_seek_frame(ctx->fmt_ctx, -1, (int64_t)(ctx->seek_pos * AV_TIME_BASE), 0);
 				seekid = ctx->cur_seekid;
 				// HACK! Avoid deadlock by waking up the video waiter
 				pthread_mutex_lock(&ctx->v_buf_mutex);

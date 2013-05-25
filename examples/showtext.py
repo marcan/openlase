@@ -31,14 +31,16 @@ ol.setRenderParams(params)
 
 lines = sys.argv[1:]
 
+SIZE = 0.4
+
 while True:
 	lc = len(lines)
 
 	font = ol.getDefaultFont()
-	yoff = (lc/2.0) * 0.3
+	yoff = (lc/2.0) * 0.4
 
 	for i,line in enumerate(lines):
-		w = ol.getStringWidth(font, 0.3, line)
-		ol.drawString(font, (-w/2,yoff-i*0.3), 0.3, ol.C_WHITE, line)
+		w = ol.getStringWidth(font, 0.4, line)
+		ol.drawString(font, (-w/2,yoff-i*0.4), 0.4, ol.C_WHITE, line)
 
 	ftime = ol.renderFrame(60)

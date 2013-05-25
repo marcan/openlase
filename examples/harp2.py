@@ -21,7 +21,7 @@
 
 # You may need to edit some constants here
 
-THRESHOLD=60
+THRESHOLD=75
 WIDTH=320
 HEIGHT=240
 
@@ -103,9 +103,9 @@ print "Starting thread"
 
 v_off = -0.1
 
-n_start = 47
-n_end = 47 + 25
-n_off = 0
+n_start = 44 + 1 + 6
+n_end = 44 + 24 + 6
+n_off = 1
 
 offsets = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]
 xpos = [0, 0.5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6]
@@ -117,15 +117,16 @@ def gxpos(x):
 
 dots = []
 
-xstart = gxpos(n_start)
-xend = gxpos(n_end)
+xstart = gxpos(n_start + n_off)
+xend = gxpos(n_end + n_off)
 
 for n in range(n_start, n_end+1):
 	ld = (n + n_off) % len(offsets)
 	off = offsets[ld] * v_off
 	x = 2 * (gxpos(n + n_off) - xstart) / float(xend - xstart)
 	x -= 1.0
-	x *= 0.99
+	x *= 0.98
+	print -x,off
 	dots.append((-x, off))
 
 olt.dots = dots
@@ -139,6 +140,7 @@ cv.SetCaptureProperty(camera, cv.CV_CAP_PROP_BRIGHTNESS, 0)
 image = cv.QueryFrame(camera)
 image = cv.QueryFrame(camera)
 image = cv.QueryFrame(camera)
+image = cv.QueryFrame(camera)
 
 grey = cv.CreateImage(cv.GetSize(image), cv.IPL_DEPTH_8U, 1)
 grey2 = cv.CreateImage(cv.GetSize(image), cv.IPL_DEPTH_8U, 1)
@@ -146,17 +148,22 @@ grey2 = cv.CreateImage(cv.GetSize(image), cv.IPL_DEPTH_8U, 1)
 
 olt.start()
 print "Thread running"
+time.sleep(1)
 
 try:
-	for i in range(30):
+	for i in range(10):
 		image = cv.QueryFrame(camera)
 	refpoints = getpoints(image)
-	refpoints.sort(key=lambda x: -x[0])
+	refpoints.sort(key=lambda x: x[0])
 
 	print len(refpoints), n_end - n_start + 1
 
+	frameno=1
+	start=time.time()
 	while True:
 		image = cv.QueryFrame(camera)
+		print frameno, frameno/(time.time()-start)
+		frameno += 1
 		cpoints = getpoints(image)
 		state = [False]*len(refpoints)
 		for i, rp in enumerate(refpoints):

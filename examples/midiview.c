@@ -80,7 +80,7 @@ void note_on(int note, int velocity)
 	blips[cur_blip].x = (xp / 6.0 - 1.0)* 0.6;
 	blips[cur_blip].y = (2*note/127.0)-1.0;
 	blips[cur_blip].r = 0.05;
-	blips[cur_blip].bright = 0.3+(velocity / 70.0);
+	blips[cur_blip].bright = 0.3+(velocity / 128.0);
 	blips[cur_blip].phase = 1;
 	blips[cur_blip].note = 1;
 

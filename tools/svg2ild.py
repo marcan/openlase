@@ -896,7 +896,7 @@ def write_ild(params, rframe, path, center=True):
 			raise ValueError("X out of bounds: %d"%x)
 		if abs(y) > 32767:
 			raise ValueError("Y out of bounds: %d"%y)
-		dout += struct.pack(">hhBB",x,-y,mode,0x00)
+		dout += struct.pack(">hhBB",x,-y,mode,0x01)
 
 	frame_time = len(rframe) / float(params.rate)
 

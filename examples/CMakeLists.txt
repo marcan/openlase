@@ -42,8 +42,7 @@ add_executable(harp harp.c)
 target_link_libraries(harp openlase)
 
 add_subdirectory(27c3_slides)
-add_subdirectory(linuxtag_slides)
 
 # Note: this target needs modplug but I'm too lazy to add a module finder for
 # it.
-add_subdirectory(lase_demo)
+#add_subdirectory(lase_demo)

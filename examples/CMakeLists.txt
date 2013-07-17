@@ -41,7 +41,7 @@ endif()
 add_executable(harp harp.c)
 target_link_libraries(harp openlase)
 
-add_subdirectory(27c3_slides)
+#add_subdirectory(27c3_slides)
 
 # Note: this target needs modplug but I'm too lazy to add a module finder for
 # it.

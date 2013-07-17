@@ -52,7 +52,6 @@ is a hack.
 #include <string.h>
 #include <stdlib.h>
 #include <jack/jack.h>
-#include <math.h>
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

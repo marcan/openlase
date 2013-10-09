@@ -273,7 +273,22 @@ int main (int argc, char *argv[])
 {
 	static const char jack_client_name[] = "simulator";
 	jack_status_t jack_status;
-	
+
+
+	glutInit(&argc, argv);
+
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH);
+	glutInitWindowSize(640, 640);
+	glutInitWindowPosition(0, 0);
+
+	window = glutCreateWindow("OpenLase Simulator");
+
+	glutDisplayFunc(&draw_gl);
+	glutIdleFunc(&draw_gl);
+	glutReshapeFunc(&resize_gl);
+	glutKeyboardFunc(&key_gl);
+	init_gl(640, 640);
+
 	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
@@ -289,20 +304,6 @@ int main (int argc, char *argv[])
 	in_r = jack_port_register (client, "in_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	in_g = jack_port_register (client, "in_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	in_b = jack_port_register (client, "in_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
-
-	glutInit(&argc, argv);
-
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH);
-	glutInitWindowSize(640, 640);
-	glutInitWindowPosition(0, 0);
-
-	window = glutCreateWindow("OpenLase Simulator");
-
-	glutDisplayFunc(&draw_gl);
-	glutIdleFunc(&draw_gl);
-	glutReshapeFunc(&resize_gl);
-	glutKeyboardFunc(&key_gl);
-	init_gl(640, 640);
 
 	if (jack_activate (client)) {
 		fprintf (stderr, "cannot activate client");

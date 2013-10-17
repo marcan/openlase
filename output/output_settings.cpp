@@ -252,7 +252,7 @@ void OutputSettings::resetDefaults()
 {
 	xEnable->setChecked(true);
 	yEnable->setChecked(true);
-	xInvert->setChecked(true);
+	xInvert->setChecked(false);
 	yInvert->setChecked(false);
 	xySwap->setChecked(false);
 	aspectScale->setChecked(false);
@@ -274,19 +274,19 @@ void OutputSettings::resetDefaults()
 	redMaxBox->setValue(100);
 	redMinBox->setValue(0);
 	redBlankBox->setValue(0);
-	redDelayBox->setValue(7);
+	redDelayBox->setValue(0);
 
 	greenEnable->setChecked(true);
 	greenMaxBox->setValue(100);
 	greenMinBox->setValue(0);
 	greenBlankBox->setValue(0);
-	greenDelayBox->setValue(7);
+	greenDelayBox->setValue(0);
 
 	blueEnable->setChecked(true);
 	blueMaxBox->setValue(100);
 	blueMinBox->setValue(0);
 	blueBlankBox->setValue(0);
-	blueDelayBox->setValue(7);
+	blueDelayBox->setValue(0);
 	
 	resetPoints();
 	updateAllSettings();

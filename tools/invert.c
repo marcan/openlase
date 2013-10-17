@@ -127,7 +127,7 @@ int main (int argc, char *argv[])
 {
 	jack_client_t *client;
 
-	if ((client = jack_client_new ("invert")) == 0) {
+	if ((client = jack_client_open("invert", JackNullOption, NULL)) == 0) {
 		fprintf (stderr, "jack server not running?\n");
 		return 1;
 	}

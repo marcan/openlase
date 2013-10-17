@@ -109,7 +109,7 @@ int main (int argc, char *argv[])
 
 	float time = 0;
 	float ftime;
-	int i,j;
+	int i;
 
 	int frames = 0;
 

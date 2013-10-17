@@ -28,6 +28,9 @@ target_link_libraries(scope ${JACK_LIBRARIES} m)
 add_executable(simple simple.c)
 target_link_libraries(simple openlase)
 
+add_executable(laser-clock laser-clock.c)
+target_link_libraries(laser-clock openlase)
+
 add_executable(pong pong.c)
 target_link_libraries(pong openlase)
 

@@ -93,6 +93,9 @@ static void transform(sample_t *ox, sample_t *oy)
 
 /* The following filters attempt to compensate for imperfections in my galvos.
 You'll probably want to turn them off for anything else */
+#undef USE_GALVO_FILTERS
+
+#ifdef USE_GALVO_FILTERS
 
 #define LIMIT 0.007
 #define RATIO 0.30
@@ -132,6 +135,8 @@ static inline void filter(float *x, float *y)
 	cfilter(x,&px);
 	cfilter(y,&py);
 }
+
+#endif /* USE_GALVO_FILTERS */
 
 static inline float scale_color(float c, float c_max, float c_min, float blank, float power)
 {
@@ -247,7 +252,9 @@ static int process (nframes_t nframes, void *arg)
 		    frames_dead = 0;
 		}
 		
+#ifdef USE_GALVO_FILTERS
 		filter(&x, &y);
+#endif
 		
 		*o_x++ = x;
 		*o_y++ = y;

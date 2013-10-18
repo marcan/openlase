@@ -40,10 +40,6 @@ the laser image updates.
 #include <stdlib.h>
 #include <jack/jack.h>
 
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-
 #if BYTE_ORDER == LITTLE_ENDIAN
 static inline uint16_t swapshort(uint16_t v) {
 	return (v >> 8) | (v << 8);
@@ -204,6 +200,11 @@ struct color palette[256] = {
 
 int process (nframes_t nframes, void *arg)
 {
+	if ( curframe == NULL )
+	    return 0;
+	if ( curdframe == NULL )
+	    curdframe = curframe;
+
 	struct frame *frame = curdframe;
 
 	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
@@ -283,28 +284,24 @@ int clamp(int v)
 	return v;
 }
 
-int loadild(const char *fname, struct frame *frame)
+int loadild(FILE *ild, struct frame *frame)
 {
 	int i;
-	FILE *ild = fopen(fname, "rb");
 
 	int minx = 65536, maxx = -65536;
 	int miny = 65536, maxy = -65536;
 	int minz = 65536, maxz = -65536;
 
-	if (!ild) {
-		fprintf(stderr, "cannot open %s\n", fname);
-		return -1;
-	}
-
 	frame->count = 0;
 	memset(frame, 0, sizeof(struct frame));
 
-	while(!frame->count) {
+	if ( 1 ) {
 
 		struct ilda_hdr hdr;
 
 		if (fread(&hdr, sizeof(hdr), 1, ild) != 1) {
+			if ( feof(ild) )
+			    return -1;
 			fprintf(stderr, "error while reading file\n");
 			return -1;
 		}
@@ -318,9 +315,14 @@ int loadild(const char *fname, struct frame *frame)
 		hdr.frameno = swapshort(hdr.frameno);
 		hdr.framecount = swapshort(hdr.framecount);
 
+		if ( hdr.count == 0 )
+		    return -1;
+
 		switch (hdr.format) {
 		case 0:
-			printf("Got 3D frame, %d points\n", hdr.count);
+			printf("Got 3D frame #%3d/%-3d, %4d points, scanner #%d, [%.8s%.8s]\n",
+				hdr.frameno, hdr.framecount,
+				hdr.count, hdr.scanner, hdr.name, hdr.company);
 			frame->points = malloc(sizeof(struct coord3d) * hdr.count);
 			struct icoord3d *tmp3d = malloc(sizeof(struct icoord3d) * hdr.count);
 			if (fread(tmp3d, sizeof(struct icoord3d), hdr.count, ild) != hdr.count) {
@@ -338,7 +340,9 @@ int loadild(const char *fname, struct frame *frame)
 			frame->count = hdr.count;
 			break;
 		case 1:
-			printf("Got 2D frame, %d points\n", hdr.count);
+			printf("Got 2D frame #%3d/%-3d, %4d points, scanner #%d, [%.8s%.8s]\n",
+				hdr.frameno, hdr.framecount,
+				hdr.count, hdr.scanner, hdr.name, hdr.company);
 			frame->points = malloc(sizeof(struct coord3d) * hdr.count);
 			struct icoord2d *tmp2d = malloc(sizeof(struct icoord2d) * hdr.count);
 			if (fread(tmp2d, sizeof(struct icoord2d), hdr.count, ild) != hdr.count) {
@@ -364,8 +368,6 @@ int loadild(const char *fname, struct frame *frame)
 			break;
 		}
 	}
-
-	fclose(ild);
 
 	if (scale) {
 		for(i=0; i<frame->count; i++) {
@@ -459,7 +461,6 @@ int main (int argc, char *argv[])
 	jack_client_t *client;
 	static const char jack_client_name[] = "playilda";
 	jack_status_t jack_status;	
-	struct stat st1, st2;
 
 	if (argc > 2 && !strcmp(argvp[0],"-s")) {
 		scale = 1;
@@ -498,13 +499,14 @@ int main (int argc, char *argv[])
 
 	memset(frames, 0, sizeof(frames));
 
-	curframe = curdframe = &frames[frameno];
-	if (loadild(fname, curframe) < 0)
-	{
+	FILE *ild = fopen(fname, "rb");
+
+	if (!ild) {
+		fprintf(stderr, "cannot open %s\n", fname);
 		return 1;
 	}
 
-	stat(fname, &st1);
+	curframe = curdframe = NULL;
 
 	subpos = 0;
 
@@ -513,20 +515,32 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
+	int i = 0;
 	while (1) {
-		stat(fname, &st2);
-		if(st1.st_mtim.tv_sec != st2.st_mtim.tv_sec || st1.st_mtim.tv_nsec != st2.st_mtim.tv_nsec) {
+
+		while ( curdframe != curframe )
+			usleep(100);
+
+		if ( 1 ) {
 			frameno = (frameno+1)%FRAMEBUFS;
 			printf("Loading new frame to slot %d\n", frameno);
 			if(frames[frameno].points)
 				free(frames[frameno].points);
-			loadild(fname, &frames[frameno]);
+			if ( loadild(ild, &frames[frameno]) < 0 ) {
+				if ( i == 1 )
+					while ( 1 )
+						sleep(1);
+				rewind(ild);
+				if ( loadild(ild, &frames[frameno]) < 0 )
+				    break;
+			}
 			printf("New frame loaded\n");
 			curframe = &frames[frameno];
-			memcpy(&st1, &st2, sizeof(st1));
+			i++;
 		}
 		usleep(50000);
 	}
+	fclose(ild);
 	jack_client_close (client);
 	exit (0);
 }

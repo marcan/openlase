@@ -491,6 +491,12 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %ifidn __OUTPUT_FORMAT__,elf
 SECTION .note.GNU-stack noalloc noexec nowrite progbits
 %endif
+%ifidn __OUTPUT_FORMAT__,elf32
+SECTION .note.GNU-stack noalloc noexec nowrite progbits
+%endif
+%ifidn __OUTPUT_FORMAT__,elf64
+SECTION .note.GNU-stack noalloc noexec nowrite progbits
+%endif
 
 ; merge mmx and sse*
 

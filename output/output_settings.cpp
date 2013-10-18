@@ -212,6 +212,7 @@ void OutputSettings::updateAllSettings()
 	cfg.blueMin = redMinBox->value() / 100.0f;
 	cfg.blueBlank = redBlankBox->value() / 100.0f;
 	cfg.blueDelay = redDelayBox->value();
+	cfg.analogColor = (colorMode->currentIndex() == COLORMODE_ANALOG);
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;

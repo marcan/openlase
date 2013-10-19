@@ -229,7 +229,7 @@ static int process (nframes_t nframes, void *arg)
 		if (!cfg->blueEnable || !cfg->outputBlue) {
 			b = 0.0f;
 		}
-		if (!cfg->analogColor) {
+		if (cfg->colorMode == COLORMODE_TTL) {
 			// TTL color
 			r = (r >= 0.5f? 1.0f: 0.0f);
 			g = (g >= 0.5f? 1.0f: 0.0f);

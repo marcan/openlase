@@ -30,6 +30,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define BLANK_ENABLE  0x02
 #define BLANK_INVERT  0x04
 
+#define COLORMODE_ANALOG	0
+#define COLORMODE_TTL		1
+
 #define MAX_DELAY 25
 
 typedef struct {
@@ -59,7 +62,7 @@ typedef struct {
 
 	float transform[3][3];
 
-	int analogColor;
+	int colorMode;
 	int scan_flags;
 	int blank_flags;
 	int safe;

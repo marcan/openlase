@@ -27,9 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define ASPECT_16_9   2
 #define ASPECT_3_2    3
 
-#define COLORMODE_ANALOG 0
-#define COLORMODE_TTL    1
-
 #define COLORCHANNEL_RGB 0
 #define COLORCHANNEL_R   1
 #define COLORCHANNEL_G   2
@@ -212,7 +209,7 @@ void OutputSettings::updateAllSettings()
 	cfg.blueMin = redMinBox->value() / 100.0f;
 	cfg.blueBlank = redBlankBox->value() / 100.0f;
 	cfg.blueDelay = redDelayBox->value();
-	cfg.analogColor = (colorMode->currentIndex() == COLORMODE_ANALOG);
+	cfg.colorMode = colorMode->currentIndex();
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;
@@ -382,7 +379,7 @@ void OutputSettings::on_aspectRatio_currentIndexChanged(int index)
 
 void OutputSettings::on_colorMode_currentIndexChanged(int index)
 {
-	cfg.analogColor = (index == COLORMODE_ANALOG);
+	cfg.colorMode = index;
 }
 
 void OutputSettings::on_colorChannels_currentIndexChanged(int index)

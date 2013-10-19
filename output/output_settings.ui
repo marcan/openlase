@@ -221,6 +221,11 @@
                   <string>TTL</string>
                  </property>
                 </item>
+                <item>
+                 <property name="text">
+                  <string>Modulated</string>
+                 </property>
+                </item>
                </widget>
               </item>
               <item>

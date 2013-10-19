@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define COLORMODE_ANALOG	0
 #define COLORMODE_TTL		1
+#define COLORMODE_MODULATED	2
 
 #define MAX_DELAY 25
 

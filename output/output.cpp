@@ -240,6 +240,15 @@ static int process (nframes_t nframes, void *arg)
 		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
 		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);
 
+		if (cfg->colorMode == COLORMODE_MODULATED) {
+			// Modulated at half the sample rate (for AC-coupling)
+			if (frm % 2) {
+				r = -r;
+				g = -g;
+				b = -b;
+			}
+		}
+
 		if(orig_r == 0.0f && orig_g == 0.0f && orig_b == 0.0f) {
 			if(frames_dead >= DEAD_TIME) {
 				r = 0.0f;

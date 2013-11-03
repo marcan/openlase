@@ -1,4 +1,5 @@
-find_package(PythonLibs)
+set(Python_ADDITIONAL_VERSIONS 2.7)
+find_package(PythonLibs 2)
 find_program(CYTHON_EXECUTABLE cython)
 
 if(CYTHON_EXECUTABLE MATCHES "NOTFOUND" OR NOT PYTHONLIBS_FOUND)

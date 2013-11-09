@@ -427,7 +427,7 @@ cdef extern from "text.h":
 	ctypedef struct _Font "Font"
 
 	_Font *olGetDefaultFont()
-	float olGetCharWidth(_Font *fnt, char c)
+	float olGetCharWidth(_Font *fnt, float height, char c)
 	float olGetStringWidth(_Font *fnt, float height, char *s)
 	float olGetCharOverlap(_Font *font, float height)
 	float olDrawChar(_Font *fnt, float x, float y, float height, uint32_t color, char c)
@@ -441,9 +441,9 @@ cpdef getDefaultFont():
 	f.font = olGetDefaultFont()
 	return f
 
-cpdef float getCharWidth(object font, char c):
+cpdef float getCharWidth(object font, float height, char c):
 	cdef Font fnt = font
-	return olGetCharWidth(fnt.font, c)
+	return olGetCharWidth(fnt.font, height, c)
 cpdef float getStringWidth(object font, float height, char *s):
 	cdef Font fnt = font
 	return olGetStringWidth(fnt.font, height, s)

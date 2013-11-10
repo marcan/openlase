@@ -21,25 +21,31 @@ link_directories (${CMAKE_BINARY_DIR}/libol)
 
 add_executable(circlescope circlescope.c)
 target_link_libraries(circlescope ${JACK_LIBRARIES} m)
+install(PROGRAMS circlescope DESTINATION bin RENAME ol-circlescope)
 
 add_executable(scope scope.c)
 target_link_libraries(scope ${JACK_LIBRARIES} m)
+install(PROGRAMS scope DESTINATION bin RENAME ol-scope)
 
 add_executable(simple simple.c)
 target_link_libraries(simple openlase)
+install(PROGRAMS simple DESTINATION bin RENAME ol-simple)
 
 add_executable(pong pong.c)
 target_link_libraries(pong openlase)
+install(PROGRAMS pong DESTINATION bin RENAME ol-pong)
 
 if(ALSA_FOUND)
   add_executable(midiview midiview.c)
   target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
+  install(PROGRAMS midiview DESTINATION bin RENAME ol-midiview)
 else()
   message(STATUS "Will NOT build midiview (ALSA missing)")
 endif()
 
 add_executable(harp harp.c)
 target_link_libraries(harp openlase)
+install(PROGRAMS harp DESTINATION bin RENAME ol-harp)
 
 #add_subdirectory(27c3_slides)
 

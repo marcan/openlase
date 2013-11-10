@@ -26,6 +26,7 @@ if(QT4_FOUND)
 
   add_executable(output output.cpp output_settings.cpp ${output_UIS_H} ${output_MOCS})
   target_link_libraries(output ${JACK_LIBRARIES} ${QT_LIBRARIES})
+  install(PROGRAMS output DESTINATION bin RENAME ol-output)
 else()
   message(STATUS "Will NOT build output (Qt4 missing)")
 endif()

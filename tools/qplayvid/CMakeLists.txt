@@ -25,6 +25,7 @@ if(QT4_FOUND AND FFMPEG_FOUND AND AVRESAMPLE_FOUND AND SWSCALE_FOUND AND BUILD_T
 
   add_executable(qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
   target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} ${QT_LIBRARIES})
+  install(TARGETS qplayvid DESTINATION bin)
 else()
   message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg or libavresample or tracer missing)")
 endif()

@@ -36,6 +36,7 @@ endif()
 add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
 target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
 set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
+install(TARGETS openlase LIBRARY DESTINATION lib)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py

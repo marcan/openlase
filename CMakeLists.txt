@@ -50,6 +50,7 @@ if(NOT DEFINED BUILD_TRACER)
 endif()
 
 add_subdirectory (libol)
+add_subdirectory (include)
 add_subdirectory (output)
 add_subdirectory (tools)
 add_subdirectory (python)

@@ -1,6 +1,6 @@
 #         OpenLase - a realtime laser graphics toolkit
 #
-# Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
+# Copyright (C) 2009-2013 Hector Martin "marcan" <hector@marcansoft.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,17 +16,5 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-if(QT4_FOUND)
-  include(${QT_USE_FILE})
+install(FILES ilda.h libol.h text.h trace.h DESTINATION include/openlase)
 
-  QT4_WRAP_UI(output_UIS_H output_settings.ui)
-  QT4_WRAP_CPP(output_MOCS output_settings.h)
-
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-  add_executable(output output.cpp output_settings.cpp ${output_UIS_H} ${output_MOCS})
-  target_link_libraries(output ${JACK_LIBRARIES} ${QT_LIBRARIES})
-  install(TARGETS output DESTINATION bin)
-else()
-  message(STATUS "Will NOT build output (Qt4 missing)")
-endif()

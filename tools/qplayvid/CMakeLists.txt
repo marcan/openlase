@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-if(QT4_FOUND AND FFMPEG_FOUND AND SWSCALE_FOUND AND BUILD_TRACER)
+if(QT4_FOUND AND FFMPEG_FOUND AND AVRESAMPLE_FOUND AND SWSCALE_FOUND AND BUILD_TRACER)
   include(${QT_USE_FILE})
 
   QT4_WRAP_CPP(qplayvid_MOCS qplayvid_gui.h)
@@ -24,7 +24,8 @@ if(QT4_FOUND AND FFMPEG_FOUND AND SWSCALE_FOUND AND BUILD_TRACER)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
   add_executable(qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
-  target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} ${QT_LIBRARIES} avresample)
+  target_link_libraries(qplayvid openlase ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} ${QT_LIBRARIES})
+  install(TARGETS qplayvid DESTINATION bin)
 else()
-  message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg or tracer missing)")
+  message(STATUS "Will NOT build qplayvid (Qt4 or FFmpeg or libavresample or tracer missing)")
 endif()

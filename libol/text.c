@@ -18,6 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <math.h>
+#include <stdlib.h>
 #include "libol.h"
 #include "text.h"
 
@@ -26,6 +27,18 @@ extern Font default_font;
 Font *olGetDefaultFont(void)
 {
 	return &default_font;
+}
+
+void olFreeFont(Font *font)
+{
+	if ( !font || (font == &default_font) )
+		return;
+	free(font);
+}
+
+Font *olGetFont(olFontType font_type, const char *fontname)
+{
+	return olGetDefaultFont();
 }
 
 float olGetCharWidth(Font *font, float height, char c)

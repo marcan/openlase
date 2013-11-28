@@ -23,6 +23,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdint.h>
 #include <stddef.h>
 
+typedef enum {
+	OL_FONT_DEFAULT = 0,
+	/* future: add more OL_FONT_SOMETHING types here */
+} olFontType;
+
 typedef struct {
 	int flag;
 	float x;
@@ -38,9 +43,13 @@ typedef struct {
 	float height;
 	float overlap;
 	const FontChar *chars;
+	void *font_data;
+	olFontType font_type;
 } Font;
 
 Font *olGetDefaultFont(void);
+Font *olGetFont(olFontType font_type, const char *fontname);
+void olFreeFont(Font *font);
 float olGetCharWidth(Font *font, float height, char c);
 float olGetStringWidth(Font *fnt, float height, const char *s);
 float olGetCharOverlap(Font *font, float height);

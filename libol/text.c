@@ -57,11 +57,8 @@ float olGetCharOverlap(Font *font, float height)
 	return font->overlap * ratio;
 }
 
-float olDrawChar(Font *font, float x, float y, float height, uint32_t color, char c)
+static float olDrawChar_Default(Font *font, float x, float y, float height, uint32_t color, char c)
 {
-	if (!font)
-		return 0;
-
 	const FontChar *chr = &font->chars[(uint8_t)c];
 	const FontPoint *p = chr->points;
 
@@ -86,6 +83,14 @@ float olDrawChar(Font *font, float x, float y, float height, uint32_t color, cha
 	}
 
 	return chr->width * ratio;
+}
+
+float olDrawChar(Font *font, float x, float y, float height, uint32_t color, char c)
+{
+	if (!font)
+		return 0;
+
+	return olDrawChar_Default(font, x, y, height, color, c);
 }
 
 float olDrawString(Font *font, float x, float y, float height, uint32_t color, const char *s)

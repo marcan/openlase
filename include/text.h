@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 typedef enum {
 	OL_FONT_DEFAULT = 0,
+	OL_FONT_HERSHEY,
 	/* future: add more OL_FONT_SOMETHING types here */
 } olFontType;
 

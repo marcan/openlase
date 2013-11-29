@@ -20,6 +20,7 @@ check_include_files(malloc.h HAVE_MALLOC_H)
 check_function_exists(memalign HAVE_MEMALIGN)
 check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
+check_include_files(hersheyfont.h HAVE_HERSHEYFONT)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
@@ -34,7 +35,7 @@ else()
 endif()
 
 add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
-target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
+target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack hersheyfont)
 set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
 install(TARGETS openlase LIBRARY DESTINATION lib)
 

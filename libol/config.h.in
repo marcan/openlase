@@ -26,4 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #cmakedefine HAVE POSIX_MEMALIGN
 #cmakedefine HAVE_ALIGNED_MALLOC
 
+#cmakedefine HAVE_HERSHEYFONT
+
 #endif

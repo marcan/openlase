@@ -107,8 +107,11 @@ float olGetStringWidth(Font *font, float height, const char *s)
 	float w = 0;
 	float ratio = height / font->height;
 
+	if (!font)
+		return 0;
+
 	while(*s) {
-		w += font->chars[(uint8_t)*s].width * ratio - font->overlap * ratio;
+		w += olGetCharWidth(font, height, *s) - font->overlap * ratio;
 		s++;
 	}
 

@@ -31,6 +31,10 @@ add_executable(simple simple.c)
 target_link_libraries(simple openlase)
 install(TARGETS simple DESTINATION bin)
 
+add_executable(spin-text spin-text.c)
+target_link_libraries(spin-text openlase)
+install(TARGETS spin-text DESTINATION bin)
+
 add_executable(pong pong.c)
 target_link_libraries(pong openlase)
 install(TARGETS pong DESTINATION bin)

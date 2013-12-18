@@ -124,6 +124,10 @@ AudioCallbackFunc audiocb;
 
 LogCallbackFunc log_cb;
 
+//// visual debugging aid: light up the inter-object traversal:
+#define C_INTEROBJ_BLACK	C_BLACK
+//#define C_INTEROBJ_BLACK	C_RED
+
 static uint32_t colmul(uint32_t a, uint32_t b)
 {
     uint32_t out = 0;
@@ -649,10 +653,10 @@ static void render_object(Object *obj)
 		for (i=0; i<points; i++) {
 			addrndpoint(last_render_point.x + (dx/(float)points) * i,
 						last_render_point.y + (dy/(float)points) * i,
-						C_BLACK);
+						C_INTEROBJ_BLACK);
 		}
 		for (i=0; i<params.start_wait; i++) {
-			addrndpoint(start->x, start->y, C_BLACK);
+			addrndpoint(start->x, start->y, C_INTEROBJ_BLACK);
 		}
 	}
 	Point *op = &frames[cwbuf].points[frames[cwbuf].pnext];

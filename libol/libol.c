@@ -94,7 +94,6 @@ static volatile int cwbuf;
 static int fbufs;
 static int buflag;
 static int out_point;
-static int first_time_full;
 static int first_output_frame;
 
 float bbox[2][2];
@@ -177,18 +176,6 @@ static int process (nframes_t nframes, void *arg)
 	sample_t *o_al = (sample_t *) jack_port_get_buffer (out_al, nframes);
 	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
 
-	if (!first_time_full) {
-		//olLog("Dummy frame!\n");
-		memset(o_x, 0, nframes * sizeof(sample_t));
-		memset(o_y, 0, nframes * sizeof(sample_t));
-		memset(o_r, 0, nframes * sizeof(sample_t));
-		memset(o_g, 0, nframes * sizeof(sample_t));
-		memset(o_b, 0, nframes * sizeof(sample_t));
-		memset(o_al, 0, nframes * sizeof(sample_t));
-		memset(o_ar, 0, nframes * sizeof(sample_t));
-		return 0;
-	}
-
 	while(nframes) {
 		if (out_point == -1) {
 			if (!first_output_frame) {
@@ -202,6 +189,19 @@ static int process (nframes_t nframes, void *arg)
 					//olLog("Normal frame! %d\n", crbuf);
 				}
 			}
+
+			if (frames[crbuf].pnext == 0) {
+				//olLog("Dummy frame!\n");
+				memset(o_x, 0, nframes * sizeof(sample_t));
+				memset(o_y, 0, nframes * sizeof(sample_t));
+				memset(o_r, 0, nframes * sizeof(sample_t));
+				memset(o_g, 0, nframes * sizeof(sample_t));
+				memset(o_b, 0, nframes * sizeof(sample_t));
+				memset(o_al, 0, nframes * sizeof(sample_t));
+				memset(o_ar, 0, nframes * sizeof(sample_t));
+				return 0;
+			}
+
 			out_point = 0;
 		}
 		int count = nframes;
@@ -248,7 +248,6 @@ int olInit(int buffer_count, int max_points)
 	cwbuf = 0;
 	crbuf = 0;
 	out_point = -1;
-	first_time_full = 0;
 	first_output_frame = 0;
 	memset(&wframe, 0, sizeof(Frame));
 	wframe.objmax = 16;
@@ -738,7 +737,6 @@ float olRenderFrame(int max_fps)
 	while (((cwbuf+1)%fbufs) == crbuf) {
 		//olLog("Waiting %d %d\n", cwbuf, crbuf);
 		usleep(1000);
-		first_time_full = 1;
 	}
 	frames[cwbuf].pnext=0;
 	int cnt = wframe.objcnt;

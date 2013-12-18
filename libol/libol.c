@@ -726,7 +726,12 @@ float olRenderFrame(int max_fps)
 	int i;
 	int count = 0;
 
-	int min_points = params.rate / max_fps;
+	int min_points;
+	if (max_fps <= 0)
+		min_points = 0;
+	else
+		min_points = params.rate / max_fps;
+
 
 	memset(&last_info, 0, sizeof(last_info));
 

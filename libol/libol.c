@@ -61,6 +61,8 @@ typedef struct {
 typedef struct {
 	int pmax;
 	int pnext;
+	int first_wait_point;
+	int first_real_point;
 	Point *points;
 	float *audio_l;
 	float *audio_r;
@@ -88,6 +90,7 @@ static DrawState dstate;
 static OLRenderParams params;
 
 static Point last_render_point;
+static Point last_out_point;
 
 static volatile int crbuf;
 static volatile int cwbuf;
@@ -168,6 +171,7 @@ static void jack_shutdown (void *arg)
 
 static int process (nframes_t nframes, void *arg)
 {
+	//olLog("---------------------------- process(nframes=%d)\n", nframes);
 	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
 	sample_t *o_y = (sample_t *) jack_port_get_buffer (out_y, nframes);
 	sample_t *o_r = (sample_t *) jack_port_get_buffer (out_r, nframes);
@@ -177,6 +181,7 @@ static int process (nframes_t nframes, void *arg)
 	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
 
 	while(nframes) {
+		int duplicate_frame = 0;
 		if (out_point == -1) {
 			if (!first_output_frame) {
 				//olLog("First frame! %d\n", crbuf);
@@ -184,6 +189,7 @@ static int process (nframes_t nframes, void *arg)
 			} else {
 				if ((crbuf+1)%fbufs == cwbuf) {
 					//olLog("Duplicated frame! %d\n", crbuf);
+					duplicate_frame = 1;
 				} else {
 					crbuf = (crbuf+1)%fbufs;
 					//olLog("Normal frame! %d\n", crbuf);
@@ -202,13 +208,58 @@ static int process (nframes_t nframes, void *arg)
 				return 0;
 			}
 
-			out_point = 0;
+			if (duplicate_frame) {
+			    // Generate black points to traverse from the last
+			    // output point to the first real point of the
+			    // current (duplicate) frame.
+			    int new_out_point = frames[crbuf].first_wait_point;
+			    Point *start = &frames[crbuf].points[new_out_point];
+			    float dx = start->x - last_out_point.x;
+			    float dy = start->y - last_out_point.y;
+			    float distance = fmaxf(fabsf(dx),fabsf(dy));
+			    if (distance > params.snap) {
+				int i;
+				int points = ceilf(distance/params.off_speed);
+				float x = last_out_point.x;
+				float y = last_out_point.y;
+				for (i=1; (i<=points && nframes>0); i++) {
+				    nframes--;
+				    x = last_out_point.x + (float)i*dx/points;
+				    y = last_out_point.y + (float)i*dy/points;
+				    *o_x++ = x;
+				    *o_y++ = y;
+				    unsigned int color = C_INTEROBJ_BLACK;
+				    *o_r++ = ((color >> 16) & 0xff) / 255.0f;
+				    *o_g++ = ((color >> 8) & 0xff) / 255.0f;
+				    *o_b++ = (color & 0xff) / 255.0f;
+				    *o_al++ = 0;
+				    *o_ar++ = 0;
+				    //olLog("%f %f %06x\n", x, y, color);
+				}
+				//olLog("process: dup frame traverse=%d of %d pts\n", i-1, points);
+				last_out_point.x = x;
+				last_out_point.y = y;
+				if (i == points+1)
+					out_point = new_out_point;
+			    } else {
+				out_point = frames[crbuf].first_real_point;
+			    }
+			    if (nframes == 0)
+				    return 0;
+			} else {
+			    out_point = 0;
+			}
 		}
+
+		/*
+		 * Output the pre-rendered points for this frame.
+		 */
 		int count = nframes;
 		int left = frames[crbuf].pnext - out_point;
 		if (count > left)
 			count = left;
 		int i;
+		//olLog("process: count=%d left=%d pnext=%d out_point=%d\n", count, left, frames[crbuf].pnext, out_point);
 		for (i=0; i<count; i++) {
 			Point *p = &frames[crbuf].points[out_point];
 			*o_x++ = p->x;
@@ -218,10 +269,18 @@ static int process (nframes_t nframes, void *arg)
 			*o_g++ = ((p->color >> 8) & 0xff) / 255.0f;
 			*o_b++ = (p->color & 0xff) / 255.0f;
 
-			*o_al++ = frames[crbuf].audio_l[out_point];
-			*o_ar++ = frames[crbuf].audio_r[out_point];
+			if (duplicate_frame) {
+				*o_al++ = 0;
+				*o_ar++ = 0;
+			} else {
+				*o_al++ = frames[crbuf].audio_l[out_point];
+				*o_ar++ = frames[crbuf].audio_r[out_point];
+			}
 			out_point++;
-			//olLog("%06x %f %f\n", p->x, p->y, p->color);
+			//olLog("%f %f %06x\n", p->x, p->y, p->color);
+
+			last_out_point.x =  p->x;
+			last_out_point.y =  p->y;
 		}
 		if (out_point == frames[crbuf].pnext)
 			out_point = -1;
@@ -632,6 +691,8 @@ static void render_object(Object *obj)
 	chkpts(2 * (obj->pointcnt + params.start_wait + params.end_wait + points));
 	Point *out_start = NULL;
 	int skip_out_start_wait = 0;
+	int did_interobject_traverse = 0;
+	static int first_frame = 1;
 
 	Point *ip = obj->points;
 	for (i=0; i<obj->pointcnt; i++, ip++) {
@@ -644,20 +705,36 @@ static void render_object(Object *obj)
 	if (i == obj->pointcnt) // null object
 		return;
 
+	int first_object_of_frame = 0;
+	if (frames[cwbuf].pnext == 0) {
+		first_object_of_frame = 1;
+		frames[cwbuf].first_wait_point = 0;
+		frames[cwbuf].first_real_point = 0;
+	}
+
 	if (start->x < bbox[0][0] || start->x > bbox[1][0] ||
 		start->y < bbox[0][1] || start->y > bbox[1][1]) {
 		out_start = &last_render_point;
 		skip_out_start_wait = 1;
 	} else if (distance > params.snap) {
+		//olLog("interobject traverse: %d pts\n", points);
 		for (i=0; i<points; i++) {
 			addrndpoint(last_render_point.x + (dx/(float)points) * i,
 						last_render_point.y + (dy/(float)points) * i,
 						C_INTEROBJ_BLACK);
 		}
+		did_interobject_traverse = 1;
+	}
+	if (first_frame || did_interobject_traverse) {
+		if (first_object_of_frame)
+			frames[cwbuf].first_wait_point = frames[cwbuf].pnext;
 		for (i=0; i<params.start_wait; i++) {
 			addrndpoint(start->x, start->y, C_INTEROBJ_BLACK);
 		}
+		first_frame = 0;
 	}
+	if (first_object_of_frame)
+		frames[cwbuf].first_real_point = frames[cwbuf].pnext;
 	Point *op = &frames[cwbuf].points[frames[cwbuf].pnext];
 	ip = obj->points;
 	for (i=0; i<obj->pointcnt; i++, ip++) {

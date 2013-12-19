@@ -43,6 +43,9 @@ add_executable(pong pong.c)
 target_link_libraries(pong openlase)
 install(TARGETS pong DESTINATION bin)
 
+add_executable(test-static-frames test-static-frames.c)
+target_link_libraries(test-static-frames openlase)
+
 if(ALSA_FOUND)
   add_executable(midiview midiview.c)
   target_link_libraries(midiview openlase ${ALSA_LIBRARIES})

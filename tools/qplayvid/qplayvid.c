@@ -47,6 +47,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define dprintf printf
 
+#ifndef AVCODEC_MAX_AUDIO_FRAME_SIZE
+# define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
+#endif
+
 typedef struct {
 	uint8_t *data;
 	size_t stride;
@@ -130,16 +134,19 @@ struct PlayerCtx {
 size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t seekid)
 {
 	int decoded, got_frame;
+	
+	ctx->a_frame = avcodec_alloc_frame();
 	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-	ctx->a_codec_ctx->get_buffer(ctx->a_codec_ctx, ctx->a_frame);
+	ctx->a_codec_ctx->get_buffer2(ctx->a_codec_ctx, ctx->a_frame, 0);
 	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
 	if (!got_frame) {
 		fprintf(stderr, "Error while decoding audio frame\n");
-		return packet->size;
+		decoded = packet->size;
+		goto fail;
 	}
 	int in_samples = ctx->a_frame->nb_samples;
 	if (!in_samples)
-		return decoded;
+		goto fail;
 
 	int out_samples = avresample_convert(ctx->a_resampler,
 		(uint8_t **)ctx->a_resample_output, 0, AVCODEC_MAX_AUDIO_FRAME_SIZE,
@@ -185,6 +192,9 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	pthread_cond_signal(&ctx->a_buf_not_empty);
 	pthread_mutex_unlock(&ctx->a_buf_mutex);
 
+fail:
+	avcodec_free_frame(&ctx->a_frame);
+	ctx->a_frame = NULL;
 	return decoded;
 }
 
@@ -198,20 +208,22 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 	ctx->v_pkt_pts = packet->pts;
 
+	ctx->v_frame = avcodec_alloc_frame();
 	decoded = avcodec_decode_video2(ctx->v_codec_ctx, ctx->v_frame, &got_frame, packet);
 	if (decoded < 0) {
 		fprintf(stderr, "Error while decoding video frame\n");
-		return packet->size;
+		decoded = packet->size;
+		goto fail;
 	}
 	if (!got_frame)
-		return decoded;
+		goto fail;
+
 
 	// The pts magic guesswork
 	int64_t pts = AV_NOPTS_VALUE;
-	int64_t *p_pts = (int64_t*)ctx->v_frame->opaque;
 	int64_t frame_pts = AV_NOPTS_VALUE;
-	if (p_pts)
-		frame_pts = *p_pts;
+	frame_pts = av_frame_get_best_effort_timestamp(ctx->v_frame);
+
 	if (packet->dts != AV_NOPTS_VALUE) {
 		ctx->v_faulty_dts += packet->dts <= ctx->v_last_dts;
 		ctx->v_last_dts = packet->dts;
@@ -262,7 +274,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 	if (frame->stride != ctx->v_frame->linesize[0]) {
 		fprintf(stderr, "stride mismatch: %d != %d\n", (int)frame->stride, ctx->v_frame->linesize[0]);
-		return decoded;
+		goto fail;
 	}
 	fprintf(stderr, "pix fmt: %d\n", ctx->v_codec_ctx->pix_fmt);
 
@@ -288,6 +300,9 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	pthread_cond_signal(&ctx->v_buf_not_empty);
 	pthread_mutex_unlock(&ctx->v_buf_mutex);
 
+fail:
+	avcodec_free_frame(&ctx->v_frame);
+	ctx->v_frame = NULL;
 	return decoded;
 }
 
@@ -377,24 +392,6 @@ void *decoder_thread(void *arg)
 	return NULL;
 }
 
-/* apparently hacking the buffer functions to store the PTS value is *the
- * normal thing to do* with ffmpeg. WTF? */
-
-int hack_get_buffer(struct AVCodecContext *c, AVFrame *pic) {
-	PlayerCtx *ctx = (PlayerCtx*) c->opaque;
-
-	int ret = avcodec_default_get_buffer(c, pic);
-	uint64_t *pts = av_malloc(sizeof(uint64_t));
-	*pts = ctx->v_pkt_pts;
-	pic->opaque = pts;
-	return ret;
-}
-
-void hack_release_buffer(struct AVCodecContext *c, AVFrame *pic) {
-	if(pic) av_freep(&pic->opaque);
-	avcodec_default_release_buffer(c, pic);
-}
-
 int decoder_init(PlayerCtx *ctx, const char *file)
 {
 	int i;
@@ -463,7 +460,6 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 		printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
 
-		ctx->a_frame = avcodec_alloc_frame();
 		ctx->a_resampler = avresample_alloc_context();
 		av_opt_set_int(ctx->a_resampler, "in_channel_layout", ctx->a_codec_ctx->channel_layout, 0);
 		av_opt_set_int(ctx->a_resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
@@ -508,11 +504,6 @@ int decoder_init(PlayerCtx *ctx, const char *file)
     ctx->v_faulty_pts = ctx->v_faulty_dts = 0;
     ctx->v_last_pts = ctx->v_last_dts = INT64_MIN;
 
-	ctx->v_codec_ctx->get_buffer = hack_get_buffer;
-    ctx->v_codec_ctx->release_buffer = hack_release_buffer;
-	ctx->v_codec_ctx->opaque = ctx;
-
-	ctx->v_frame = avcodec_alloc_frame();
 	ctx->v_buf_len = VIDEO_BUF;
 
 	pthread_mutex_init(&ctx->v_buf_mutex, NULL);
@@ -1059,3 +1050,5 @@ void playvid_seek(PlayerCtx *ctx, double pos)
 	pthread_cond_signal(&ctx->seek_cond);
 	pthread_mutex_unlock(&ctx->seek_mutex);
 }
+
+// kate: space-indent off; indent-width 4; mixedindent off; indent-mode cstyle; 

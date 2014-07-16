@@ -66,12 +66,13 @@ float olDrawChar(Font *font, float x, float y, float height, uint32_t color, cha
 		} while ((p++)->flag != 2);
 
 		olEnd();
+	}
+
+	if (chr->width) {
 		return chr->width * ratio;
 	} else {
 		return font->overlap * ratio;
 	}
-
-	return chr->width * ratio;
 }
 
 float olDrawString(Font *font, float x, float y, float height, uint32_t color, const char *s)

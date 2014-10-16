@@ -306,11 +306,13 @@ int loadild(const char *fname, struct frame *frame)
 
 		if (fread(&hdr, sizeof(hdr), 1, ild) != 1) {
 			fprintf(stderr, "error while reading file\n");
+			fclose(ild);
 			return -1;
 		}
 
 		if (hdr.magic != MAGIC) {
 			fprintf(stderr, "Invalid magic 0x%08x\n", hdr.magic);
+			fclose(ild);
 			return -1;
 		}
 
@@ -325,6 +327,8 @@ int loadild(const char *fname, struct frame *frame)
 			struct icoord3d *tmp3d = malloc(sizeof(struct icoord3d) * hdr.count);
 			if (fread(tmp3d, sizeof(struct icoord3d), hdr.count, ild) != hdr.count) {
 				fprintf(stderr, "error while reading frame\n");
+				fclose(ild);
+				free(tmp3d);
 				return -1;
 			}
 			for(i=0; i<hdr.count; i++) {
@@ -343,6 +347,8 @@ int loadild(const char *fname, struct frame *frame)
 			struct icoord2d *tmp2d = malloc(sizeof(struct icoord2d) * hdr.count);
 			if (fread(tmp2d, sizeof(struct icoord2d), hdr.count, ild) != hdr.count) {
 				fprintf(stderr, "error while reading frame\n");
+				fclose(ild);
+				free(tmp2d);
 				return -1;
 			}
 			for(i=0; i<hdr.count; i++) {
@@ -359,6 +365,7 @@ int loadild(const char *fname, struct frame *frame)
 			printf("Got color palette section, %d entries\n", hdr.count);
 			if (fread(palette, 3, hdr.count, ild) != hdr.count) {
 				fprintf(stderr, "error while reading palette\n");
+				fclose(ild);
 				return -1;
 			}
 			break;

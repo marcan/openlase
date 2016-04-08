@@ -99,12 +99,14 @@ IldaFile *olLoadIlda(const char *filename)
 		if (fread(&hdr, sizeof(hdr), 1, fd) != 1) {
 			olLog("ILDA: error while reading header\n");
 			olFreeIlda(ild);
+			fclose(fd);
 			return NULL;
 		}
 
 		if (hdr.magic != MAGIC) {
 			olLog("ILDA: Invalid magic 0x%08x\n", hdr.magic);
 			olFreeIlda(ild);
+			fclose(fd);
 			return NULL;
 		}
 
@@ -120,6 +122,8 @@ IldaFile *olLoadIlda(const char *filename)
 			if (fread(tmp3d, sizeof(struct icoord3d), hdr.count, fd) != hdr.count) {
 				olLog("ILDA: error while reading frame\n");
 				olFreeIlda(ild);
+				fclose(fd);
+				free(tmp3d);
 				return NULL;
 			}
 			for(i=0; i<hdr.count; i++) {
@@ -139,6 +143,8 @@ IldaFile *olLoadIlda(const char *filename)
 			if (fread(tmp2d, sizeof(struct icoord2d), hdr.count, fd) != hdr.count) {
 				olLog("ILDA: error while reading frame\n");
 				olFreeIlda(ild);
+				fclose(fd);
+				free(tmp2d);
 				return NULL;
 			}
 			for(i=0; i<hdr.count; i++) {
@@ -155,6 +161,7 @@ IldaFile *olLoadIlda(const char *filename)
 			olLog("ILDA: Got color palette section, %d entries\n", hdr.count);
 			olLog("ILDA: NOT SUPPORTED\n");
 			olFreeIlda(ild);
+			fclose(fd);
 			return NULL;
 		}
 	}

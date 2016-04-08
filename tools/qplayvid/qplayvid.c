@@ -450,8 +450,8 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 		ctx->a_codec_ctx = ctx->a_stream->codec;
 		ctx->a_codec = avcodec_find_decoder(ctx->a_codec_ctx->codec_id);
 		if (ctx->a_codec == NULL) {
-			return -1;
 			printf("No audio codec\n");
+			return -1;
 		}
 		if (avcodec_open2(ctx->a_codec_ctx, ctx->a_codec, NULL) < 0) {
 			printf("Failed to open audio codec\n");

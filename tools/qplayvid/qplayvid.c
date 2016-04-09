@@ -137,7 +137,11 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	
 	ctx->a_frame = avcodec_alloc_frame();
 	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+#if (LIBAVCODEC_VERSION_MAJOR >= 56)
 	ctx->a_codec_ctx->get_buffer2(ctx->a_codec_ctx, ctx->a_frame, 0);
+#else
+	ctx->a_codec_ctx->get_buffer(ctx->a_codec_ctx, ctx->a_frame);
+#endif
 	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
 	if (!got_frame) {
 		fprintf(stderr, "Error while decoding audio frame\n");
@@ -222,7 +226,9 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	// The pts magic guesswork
 	int64_t pts = AV_NOPTS_VALUE;
 	int64_t frame_pts = AV_NOPTS_VALUE;
+#if (LIBAVFORMAT_VERSION_MAJOR >= 56)
 	frame_pts = av_frame_get_best_effort_timestamp(ctx->v_frame);
+#endif
 
 	if (packet->dts != AV_NOPTS_VALUE) {
 		ctx->v_faulty_dts += packet->dts <= ctx->v_last_dts;

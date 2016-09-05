@@ -30,6 +30,15 @@
 ;*          Loren Merritt <lorenm@u.washington.edu>
 ;*****************************************************************************
 
+;*****************************************************************************
+;
+; Licensing note: source code other than the transpose helpers is licensable
+; under the GNU Lesser General Public license, either version 2.1 or version
+; 3.
+;
+;*****************************************************************************
+
+
 %include "x86inc.asm"
 
 %ifidn __OUTPUT_FORMAT__,elf

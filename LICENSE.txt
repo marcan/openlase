@@ -1,0 +1,46 @@
+OpenLase, as a whole, is licensed under the GNU General Public License, either
+version 2 or, at your option version 3. The license text of these licenses can
+be found in the COPYING.GPL2 and COPYING.GPL3 files in this repository.
+
+--------------------------------------------------------------------------------
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 2 or version 3.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc., 51
+Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+--------------------------------------------------------------------------------
+
+Additionally, portions of OpenLase are individually licensed under the GNU
+Lesser General Public License, either version 2 or, at your option, version 3.
+The license text of these licenses can be found in the COPYING.LGPL2 and
+COPYING.LGPL3 files in this repository.
+
+If you wish to use OpenLase under the GNU Lesser General Public License, you
+are responsible for ensuring that you only use portions that are individually
+licensed under said license. Every file licensable under the GNU Lesser General
+Public License has a header stating that fact:
+
+--------------------------------------------------------------------------------
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 2 or version 3.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program; if not, write to the Free Software Foundation, Inc., 51
+Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+--------------------------------------------------------------------------------
+
+Of note, while most of libol is licensable under the LGPL, currently, the tracer
+is not, due to a dependency on a small amount of GPL-only code in
+imgproc_sse2.asm. This may change in the future. To compile an LGPL-compatible
+binary of libol, you must currently build with BUILD_TRACER=N.

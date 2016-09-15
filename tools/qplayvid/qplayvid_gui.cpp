@@ -96,6 +96,7 @@ PlayerUI::PlayerUI(QWidget *parent)
 	modebox->addWidget(r_canny);
 	modebox->addWidget(c_splitthresh);
 	tracebox->addRow("Mode", 			modebox);
+	tracebox->addRow("Scale", 			Setting(scale, 		10, 100, 1));
 	tracebox->addRow("Blur", 			Setting(blur, 		0, 500, 5));
 	tracebox->addRow("Threshold", 		Setting(threshold, 	0, 500, 1));
 	tracebox->addRow("Threshold 2", 	Setting(threshold2, 0, 500, 1));
@@ -194,6 +195,7 @@ void PlayerUI::loadDefaults()
 	settings.canny = 1;
 	settings.splitthreshold = 0;
 	settings.blur = 100;
+	settings.scale = 100;
 	settings.threshold = 30;
 	settings.threshold2 = 20;
 	settings.darkval = 96;

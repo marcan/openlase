@@ -31,6 +31,7 @@ typedef struct {
 	int splitthreshold;
 
 	int blur;
+	int scale;
 	int threshold;
 	int threshold2;
 	int darkval;

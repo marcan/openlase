@@ -57,6 +57,7 @@ typedef struct {
 	size_t data_size;
 	int32_t seekid;
 	double pts;
+	int width, height;
 } VideoFrame;
 
 typedef struct {
@@ -262,27 +263,30 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 		pthread_cond_wait(&ctx->v_buf_not_full, &ctx->v_buf_mutex);
 	}
 	pthread_mutex_unlock(&ctx->v_buf_mutex);
+	
+	pthread_mutex_lock(&ctx->settings_mutex);
+	int scaled_width = ctx->width * ctx->settings.scale / 100;
+	int scaled_height = ctx->height * ctx->settings.scale / 100;
+	pthread_mutex_unlock(&ctx->settings_mutex);
 
 	VideoFrame *frame = ctx->v_bufs[ctx->v_buf_put];
-	if (!frame) {
+	if (!frame || frame->width != scaled_width || frame->height != scaled_height) {
+		free(frame);
 		frame = malloc(sizeof(VideoFrame));
-		frame->stride = ctx->v_frame->linesize[0];
-		frame->data_size = frame->stride * ctx->height;
+		frame->stride = (scaled_width+15)&~15;
+		frame->data_size = frame->stride * ((scaled_height+15)&~15);
 		frame->data = malloc(frame->data_size);
+		frame->width = scaled_width;
+		frame->height = scaled_height;
 		ctx->v_bufs[ctx->v_buf_put] = frame;
 	}
 
-	if (frame->stride != ctx->v_frame->linesize[0]) {
-		fprintf(stderr, "stride mismatch: %d != %d\n", (int)frame->stride, ctx->v_frame->linesize[0]);
-		goto fail;
-	}
 	fprintf(stderr, "pix fmt: %d\n", ctx->v_codec_ctx->pix_fmt);
 
-	if (!ctx->v_sws_ctx) {
-		ctx->v_sws_ctx = sws_getContext(ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
-										ctx->width, ctx->height, PIX_FMT_GRAY8, SWS_BICUBIC,
-										NULL, NULL, NULL);
-	}
+	ctx->v_sws_ctx = sws_getCachedContext(
+		ctx->v_sws_ctx, ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
+		scaled_width, scaled_height, PIX_FMT_GRAY8, SWS_BICUBIC,
+		NULL, NULL, NULL);
 
 	AVPicture pict;
 	pict.data[0] = frame->data;
@@ -835,7 +839,6 @@ void *display_thread(void *arg)
 
 		olScale(1 + settings.overscan/100.0, 1 + settings.overscan/100.0);
 		olTranslate(-1.0f, 1.0f);
-		olScale(2.0f/ctx->width, -2.0f/ctx->height);
 
 		if (!ctx->cur_frame || ctx->cur_frame->seekid < 0) {
 			printf("Dummy frame\n");
@@ -849,6 +852,7 @@ void *display_thread(void *arg)
 				deliver_event(ctx, time, ftime, frames, 0);
 			continue;
 		}
+		olScale(2.0f/ctx->cur_frame->width, -2.0f/ctx->cur_frame->height);
 
 		if (last != ctx->cur_frame || settings_changed) {
 			tparams.sigma = settings.blur / 100.0;
@@ -889,6 +893,8 @@ void *display_thread(void *arg)
 					tparams.threshold = settings.threshold;
 				}
 			}
+			tparams.width = ctx->cur_frame->width;
+			tparams.height = ctx->cur_frame->height;
 			olTraceReInit(trace_ctx, &tparams);
 			olTraceFree(&result);
 			printf("Trace\n");

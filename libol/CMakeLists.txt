@@ -16,10 +16,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-check_include_files(malloc.h HAVE_MALLOC_H)
-check_function_exists(memalign HAVE_MEMALIGN)
-check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
-check_function_exists(_aligned_malloc HAVE_ALIGNED_MALLOC)
+check_include_file(malloc.h HAVE_MALLOC_H)
+check_symbol_exists(memalign malloc.h HAVE_MEMALIGN)
+check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)
+check_symbol_exists(_aligned_malloc malloc.h HAVE_ALIGNED_MALLOC)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})

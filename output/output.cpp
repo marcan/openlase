@@ -210,11 +210,17 @@ static int process (nframes_t nframes, void *arg)
 			float v = max(r,max(g,b));
 			r = g = b = v;
 		}
+
 		if (!(cfg->blank_flags & BLANK_ENABLE)) {
 			r = 1.0f;
 			g = 1.0f;
 			b = 1.0f;
 		}
+
+		r = scale_color(r, cfg->redMax, cfg->redMin, cfg->redBlank, cfg->power);
+		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
+		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);
+
 		if (!(cfg->blank_flags & OUTPUT_ENABLE)) {
 			r = 0.0f;
 			g = 0.0f;
@@ -235,10 +241,6 @@ static int process (nframes_t nframes, void *arg)
 			g = (g >= 0.5f? 1.0f: 0.0f);
 			b = (b >= 0.5f? 1.0f: 0.0f);
 		}
-
-		r = scale_color(r, cfg->redMax, cfg->redMin, cfg->redBlank, cfg->power);
-		g = scale_color(g, cfg->greenMax, cfg->greenMin, cfg->greenBlank, cfg->power);
-		b = scale_color(b, cfg->blueMax, cfg->blueMin, cfg->blueBlank, cfg->power);
 
 		if (cfg->colorMode == COLORMODE_MODULATED) {
 			// Modulated at half the sample rate (for AC-coupling)

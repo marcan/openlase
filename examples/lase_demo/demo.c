@@ -950,9 +950,9 @@ void DoTunnel(float limit)
 		float left = (limit-audiotime)/AB;
 		olResetColor();
 		if (ctime < 2.0)
-			olMultColor(C_RED+C_GREEN_I((int)(255*ctime/2)));
+			olMultColor(C_GREY((int)(255*ctime/2)));
 		else if (left < 2.0)
-			olMultColor(C_BLUE+C_RED_I((int)(255*left/2)));
+			olMultColor(C_GREY((int)(255*left/2)));
 
 		olLoadIdentity3();
 		olPerspective(45, 1, 1, 100);
@@ -980,7 +980,7 @@ void DoTunnel(float limit)
 					float theta = j/5.0*M_PI;
 					uint32_t c = C_RED;
 					if(i==9) {
-						c = C_RED+C_BLUE_I((int)(255 * z/dz));
+						c = C_RED_I((int)(255 * z/dz));
 					}
 					olVertex3(sinf(theta), cosf(theta), 0, c);
 					//olVertex3(j/11.0,0,0,C_WHITE);
@@ -999,7 +999,8 @@ void DoTunnel(float limit)
 					olPushMatrix3();
 					olTranslate3(0,0,dz*i);
 					tunnel_xform(rz+dz*(i+id));
-					olVertex3(sinf(theta), cosf(theta), 0, C_GREEN);
+					olVertex3(sinf(theta), cosf(theta), 0,
+							  C_GREEN_I((int)(255 * i/8.0)) | C_BLUE_I((int)(255 * (1-(i/8.0)))));
 					olPopMatrix3();
 				}
 			}

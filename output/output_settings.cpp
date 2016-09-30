@@ -201,15 +201,20 @@ void OutputSettings::updateAllSettings()
 	cfg.redMin = redMinBox->value() / 100.0f;
 	cfg.redBlank = redBlankBox->value() / 100.0f;
 	cfg.redDelay = redDelayBox->value();
-	cfg.greenMax = redMaxBox->value() / 100.0f;
-	cfg.greenMin = redMinBox->value() / 100.0f;
-	cfg.greenBlank = redBlankBox->value() / 100.0f;
-	cfg.greenDelay = redDelayBox->value();
-	cfg.blueMax = redMaxBox->value() / 100.0f;
-	cfg.blueMin = redMinBox->value() / 100.0f;
-	cfg.blueBlank = redBlankBox->value() / 100.0f;
-	cfg.blueDelay = redDelayBox->value();
+	cfg.greenMax = greenMaxBox->value() / 100.0f;
+	cfg.greenMin = greenMinBox->value() / 100.0f;
+	cfg.greenBlank = greenBlankBox->value() / 100.0f;
+	cfg.greenDelay = greenDelayBox->value();
+	cfg.blueMax = blueMaxBox->value() / 100.0f;
+	cfg.blueMin = blueMinBox->value() / 100.0f;
+	cfg.blueBlank = blueBlankBox->value() / 100.0f;
+	cfg.blueDelay = blueDelayBox->value();
 	cfg.colorMode = colorMode->currentIndex();
+
+	int index = colorChannels->currentIndex();
+	cfg.outputRed = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_R);
+	cfg.outputGreen = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_G);
+	cfg.outputBlue = (index == COLORCHANNEL_RGB || index == COLORCHANNEL_B);
 	
 	cfg.scan_flags = 0;
 	cfg.blank_flags = 0;

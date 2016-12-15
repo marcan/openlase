@@ -41,7 +41,7 @@ typedef struct {
 } Font;
 
 Font *olGetDefaultFont(void);
-float olGetCharWidth(Font *fnt, char c);
+float olGetCharWidth(Font *font, float height, char c);
 float olGetStringWidth(Font *fnt, float height, const char *s);
 float olGetCharOverlap(Font *font, float height);
 float olDrawChar(Font *fnt, float x, float y, float height, uint32_t color, char c);

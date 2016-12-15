@@ -28,11 +28,12 @@ Font *olGetDefaultFont(void)
 	return &default_font;
 }
 
-float olGetCharWidth(Font *font, char c)
+float olGetCharWidth(Font *font, float height, char c)
 {
 	if (!font)
 		return 0;
-	return font->chars[(uint8_t)c].width / font->height;
+	float ratio = height / font->height;
+	return font->chars[(uint8_t)c].width * ratio;
 }
 
 float olGetCharOverlap(Font *font, float height)

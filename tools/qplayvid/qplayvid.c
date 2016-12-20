@@ -37,6 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavdevice/avdevice.h>
 #include <libavresample/avresample.h>
 #include <libavutil/opt.h>
+#include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 
 #define OL_FRAMES_BUF 5
@@ -285,7 +286,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 	ctx->v_sws_ctx = sws_getCachedContext(
 		ctx->v_sws_ctx, ctx->width, ctx->height, ctx->v_codec_ctx->pix_fmt,
-		scaled_width, scaled_height, PIX_FMT_GRAY8, SWS_BICUBIC,
+		scaled_width, scaled_height, AV_PIX_FMT_GRAY8, SWS_BICUBIC,
 		NULL, NULL, NULL);
 
 	AVPicture pict;

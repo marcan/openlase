@@ -427,10 +427,10 @@ cdef extern from "text.h":
 	ctypedef struct _Font "Font"
 
 	_Font *olGetDefaultFont()
-	float olGetCharWidth(_Font *fnt, char c)
+	float olGetCharWidth(_Font *fnt, int c)
 	float olGetStringWidth(_Font *fnt, float height, char *s)
 	float olGetCharOverlap(_Font *font, float height)
-	float olDrawChar(_Font *fnt, float x, float y, float height, uint32_t color, char c)
+	float olDrawChar(_Font *fnt, float x, float y, float height, uint32_t color, int c)
 	float olDrawString(_Font *fnt, float x, float y, float height, uint32_t color, char *s)
 
 cdef class Font:
@@ -441,7 +441,7 @@ cpdef getDefaultFont():
 	f.font = olGetDefaultFont()
 	return f
 
-cpdef float getCharWidth(object font, char c):
+cpdef float getCharWidth(object font, int c):
 	cdef Font fnt = font
 	return olGetCharWidth(fnt.font, c)
 cpdef float getStringWidth(object font, float height, char *s):
@@ -450,7 +450,7 @@ cpdef float getStringWidth(object font, float height, char *s):
 cpdef float getCharOverlap(object font, float height):
 	cdef Font fnt = font
 	return olGetCharOverlap(fnt.font, height)
-cpdef float drawChar(object font, tuple coord, float height, uint32_t color, char c):
+cpdef float drawChar(object font, tuple coord, float height, uint32_t color, int c):
 	cdef Font fnt = font
 	x, y = coord
 	return olDrawChar(fnt.font, x, y, height, color, c)

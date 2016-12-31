@@ -28,7 +28,7 @@ Font *olGetDefaultFont(void)
 	return &default_font;
 }
 
-float olGetCharWidth(Font *font, char c)
+float olGetCharWidth(Font *font, int c)
 {
 	if (!font)
 		return 0;
@@ -43,7 +43,7 @@ float olGetCharOverlap(Font *font, float height)
 	return font->overlap * ratio;
 }
 
-float olDrawChar(Font *font, float x, float y, float height, uint32_t color, char c)
+float olDrawChar(Font *font, float x, float y, float height, uint32_t color, int c)
 {
 	if (!font)
 		return 0;
@@ -81,7 +81,7 @@ float olDrawString(Font *font, float x, float y, float height, uint32_t color, c
 	float ratio = height / font->height;
 
 	while(*s) {
-		w += olDrawChar(font, x+w, y, height, color, *s) - font->overlap * ratio;
+		w += olDrawChar(font, x+w, y, height, color, (uint8_t)*s) - font->overlap * ratio;
 		s++;
 	}
 

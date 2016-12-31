@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
 #include <libavresample/avresample.h>
+#include <libavutil/frame.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
@@ -137,7 +138,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 {
 	int decoded, got_frame;
 	
-	ctx->a_frame = avcodec_alloc_frame();
+	ctx->a_frame = av_frame_alloc();
 	ctx->a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 	ctx->a_codec_ctx->get_buffer2(ctx->a_codec_ctx, ctx->a_frame, 0);
 	decoded = avcodec_decode_audio4(ctx->a_codec_ctx, ctx->a_frame, &got_frame, packet);
@@ -195,7 +196,7 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	pthread_mutex_unlock(&ctx->a_buf_mutex);
 
 fail:
-	avcodec_free_frame(&ctx->a_frame);
+	av_frame_free(&ctx->a_frame);
 	ctx->a_frame = NULL;
 	return decoded;
 }
@@ -210,7 +211,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 
 	ctx->v_pkt_pts = packet->pts;
 
-	ctx->v_frame = avcodec_alloc_frame();
+	ctx->v_frame = av_frame_alloc();
 	decoded = avcodec_decode_video2(ctx->v_codec_ctx, ctx->v_frame, &got_frame, packet);
 	if (decoded < 0) {
 		fprintf(stderr, "Error while decoding video frame\n");
@@ -306,7 +307,7 @@ size_t decode_video(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	pthread_mutex_unlock(&ctx->v_buf_mutex);
 
 fail:
-	avcodec_free_frame(&ctx->v_frame);
+	av_frame_free(&ctx->v_frame);
 	ctx->v_frame = NULL;
 	return decoded;
 }

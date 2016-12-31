@@ -56,6 +56,7 @@ is a hack.
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavresample/avresample.h>
+#include <libavutil/frame.h>
 #include <libavutil/opt.h>
 
 #define FRAMES_BUF 8
@@ -182,7 +183,7 @@ int	 av_vid_init(char *file)
 	if (avcodec_open2(pCodecCtx, pCodec, NULL)<0)
 		return -1;
 
-	pFrame=avcodec_alloc_frame();
+	pFrame=av_frame_alloc();
 
 	return 0;
 }
@@ -210,7 +211,7 @@ int av_aud_init(char *file)
 		return -1;
 
 	pACodecCtx=pAFormatCtx->streams[audioStream]->codec;
-	pAudioFrame = avcodec_alloc_frame();
+	pAudioFrame = av_frame_alloc();
 
 
 	pACodec=avcodec_find_decoder(pACodecCtx->codec_id);

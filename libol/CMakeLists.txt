@@ -41,3 +41,5 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py
     MAIN_DEPENDENCY laserfont.svg
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/genfont.py ${CMAKE_CURRENT_SOURCE_DIR}/laserfont.svg ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c default_font)
+
+install(TARGETS openlase LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

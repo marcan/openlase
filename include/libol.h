@@ -34,10 +34,12 @@ enum {
 #define C_WHITE 0xffffff
 #define C_BLACK 0x000000
 
-#define C_GREY(x)   (0x010101 * ((int)(x)))
-#define C_RED_I(x)   (0x010000 * ((int)(x)))
-#define C_GREEN_I(x)   (0x000100 * ((int)(x)))
-#define C_BLUE_I(x)   (0x000001 * ((int)(x)))
+#define CLAMP(a,b,c) (((a)<(b))?(b):((a)>(c)?(c):(a)))
+
+#define C_GREY(x)   (0x010101 * CLAMP((int)(x), 0, 255))
+#define C_RED_I(x)   (0x010000 * CLAMP((int)(x), 0, 255))
+#define C_GREEN_I(x)   (0x000100 * CLAMP((int)(x), 0, 255))
+#define C_BLUE_I(x)   (0x000001 * CLAMP((int)(x), 0, 255))
 
 enum {
 	RENDER_GRAYSCALE = 1,

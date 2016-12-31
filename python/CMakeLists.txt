@@ -22,5 +22,5 @@ else()
     PREFIX ""
     OUTPUT_NAME "pylase"
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  target_link_libraries(pylase openlase)
+  target_link_libraries(pylase ol)
 endif()

@@ -387,7 +387,7 @@ cdef class FrameInfo:
 	cdef readonly int objects
 	cdef readonly int points
 	cdef readonly int resampled_points
-	cdef readonly int resampled_blocks
+	cdef readonly int resampled_blacks
 	cdef readonly int padding_points
 
 cpdef getFrameInfo():
@@ -397,7 +397,7 @@ cpdef getFrameInfo():
 	pyinfo.objects = info.objects
 	pyinfo.points = info.points
 	pyinfo.resampled_points = info.resampled_points
-	pyinfo.resampled_blocks = info.resampled_blocks
+	pyinfo.resampled_blacks = info.resampled_blacks
 	pyinfo.padding_points = info.padding_points
 	return pyinfo
 

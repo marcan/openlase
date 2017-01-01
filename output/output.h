@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define INVERT_X      0x04
 #define INVERT_Y      0x08
 #define SWAP_XY       0x10
+#define SAFE          0x20
 
 #define OUTPUT_ENABLE 0x01
 #define BLANK_ENABLE  0x02
@@ -34,31 +35,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define COLORMODE_TTL		1
 #define COLORMODE_MODULATED	2
 
+#define COLOR_RED 0x1
+#define COLOR_GREEN 0x2
+#define COLOR_BLUE 0x4
+#define COLOR_MONOCHROME 0x08
+
 #define MAX_DELAY 25
 
 typedef struct {
-	float power;
-	float size;
+	int power;
+	int scanSize;
 
-	int outputRed;
-	int redEnable;
-	float redMax;
-	float redMin;
-	float redBlank;
+	int redMax;
+	int redMin;
+	int redBlank;
 	int redDelay;
 
-	int outputGreen;
-	int greenEnable;
-	float greenMax;
-	float greenMin;
-	float greenBlank;
+	int greenMax;
+	int greenMin;
+	int greenBlank;
 	int greenDelay;
 
-	int outputBlue;
-	int blueEnable;
-	float blueMax;
-	float blueMin;
-	float blueBlank;
+	int blueMax;
+	int blueMin;
+	int blueBlank;
 	int blueDelay;
 
 	float transform[3][3];
@@ -66,7 +66,7 @@ typedef struct {
 	int colorMode;
 	int scan_flags;
 	int blank_flags;
-	int safe;
+    int color_flags;
 } output_config_t;
 
 #endif

@@ -373,8 +373,8 @@ void OutputSettings::on_actionLoadSettings_triggered()
 
 void OutputSettings::on_actionSaveSettings_triggered()
 {
-	QString fileName = QFileDialog::getOpenFileName(this,
-		"Load Settings", "", "Configuration Files (*.cfg)");
+	QString fileName = QFileDialog::getSaveFileName(this,
+		"Save Settings", "", "Configuration Files (*.cfg)");
 
 	saveSettings(fileName);
 }

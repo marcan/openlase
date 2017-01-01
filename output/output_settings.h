@@ -26,8 +26,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
 #include <QTransform>
+#include <QFile>
 
 class ControlPoint;
+
+class OutputSetting : public QObject
+{
+	Q_OBJECT
+
+public:
+	OutputSetting(QWidget *widget, const QString &name, int& value, int bit = 0);
+	int value;
+	int bit;
+	QString name;
+	QWidget *widget;
+
+	void updateValue();
+
+signals:
+	void valueChanged(int newValue);
+	void valueChanging(int &newValue);
+
+public slots:
+	void setValue(int value);
+	void setState(bool newValue);
+	void setEnabled(bool enabled);
+
+private:
+	int &i_value;
+	bool enabled;
+	void updateTarget();
+};
 
 class OutputSettings : public QMainWindow, private Ui::OutputSettingsDLG
 {
@@ -39,59 +68,45 @@ public:
 	~OutputSettings();
 
 public slots:
-	void on_outputEnable_toggled(bool state);
-	void on_blankingEnable_toggled(bool state);
-	void on_blankingInvert_toggled(bool state);
-	void on_colorMode_currentIndexChanged(int index);
-	void on_colorChannels_currentIndexChanged(int index);
-	void on_xEnable_toggled(bool state);
-	void on_yEnable_toggled(bool state);
-	void on_xInvert_toggled(bool state);
-	void on_yInvert_toggled(bool state);
-	void on_xySwap_toggled(bool state);
 	void on_aspectRatio_currentIndexChanged(int index);
 	void on_aspectScale_toggled(bool state);
 	void on_fitSquare_toggled(bool state);
-	void on_enforceSafety_toggled(bool state);
 	void on_outputTest_pressed();
 	void on_outputTest_released();
-	void on_redEnable_toggled(bool state);
-	void on_redMaxBox_valueChanged(int value);
-	void on_redMinBox_valueChanged(int value);
-	void on_redBlankBox_valueChanged(int value);
-	void on_redDelayBox_valueChanged(int value);
-	void on_greenEnable_toggled(bool state);
-	void on_greenMaxBox_valueChanged(int value);
-	void on_greenMinBox_valueChanged(int value);
-	void on_greenBlankBox_valueChanged(int value);
-	void on_greenDelayBox_valueChanged(int value);
-	void on_blueEnable_toggled(bool state);
-	void on_blueMaxBox_valueChanged(int value);
-	void on_blueMinBox_valueChanged(int value);
-	void on_blueBlankBox_valueChanged(int value);
-	void on_blueDelayBox_valueChanged(int value);
-	void on_powerBox_valueChanged(int value);
-	void on_sizeBox_valueChanged(int value);
 	void on_resetTransform_clicked();
+
+	void on_actionSaveSettings_triggered();
+	void on_actionLoadSettings_triggered();
 
 	void resizeEvent (QResizeEvent * event);
 	void showEvent (QShowEvent * event);
 	
 	void pointMoved(ControlPoint *pt);
 
+	void safeToggled(int &state);
+	void updateSettings();
+
+	void loadSettings(QString fileName);
+	void saveSettings(QString fileName);
+
 private:
 	QTransform mtx;
 	QGraphicsScene scene;
+	QList<OutputSetting *> lsettings;
 	ControlPoint *pt[4];
 	QGraphicsPolygonItem pl;
 	int currentAspect;
+	void updateSettingsUI();
 	void updatePoly();
 	void updateMatrix();
-	void updateAllSettings();
 	void resetDefaults();
 	void resetPoints();
 	void loadPoints();
 	qreal getYRatio(int ratio);
+
+	OutputSetting *findSetting(const QString &name);
+	void addSetting(OutputSetting *setting);
+
 };
 
 class ControlPoint : public QGraphicsEllipseItem

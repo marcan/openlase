@@ -38,11 +38,31 @@ struct blip {
 	float r;
 	float phase;
 	float bright;
+	uint32_t color;
 	int note;
 };
 
 float notespeed = 1.0;
 float avgnotes = 0.0;
+
+uint32_t colors[16] = {
+	0xFFFFFF,
+	0xFF0000,
+	0x00FFFF,
+	0x0000FF,
+	0xFFFF00,
+	0x00FF00,
+	0xFF00FF,
+	0xFF8000,
+	0xFFFF80,
+	0x80FFFF,
+	0xFF80FF,
+	0x8080FF,
+	0xFF8080,
+	0x80FF80,
+	0x0080FF,
+	0x8000FF
+};
 
 #define NUM_BLIPS 32
 
@@ -68,7 +88,7 @@ snd_seq_t *open_seq(void) {
 	return seq_handle;
 }
 
-void note_on(int note, int velocity)
+void note_on(int note, int velocity, int channel)
 {
 	float ts = avgnotes;
 	if (ts > 20)
@@ -83,6 +103,7 @@ void note_on(int note, int velocity)
 	blips[cur_blip].bright = 0.3+(velocity / 128.0);
 	blips[cur_blip].phase = 1;
 	blips[cur_blip].note = 1;
+	blips[cur_blip].color = colors[channel];
 
 	cur_blip = (cur_blip + 1) % NUM_BLIPS;
 }
@@ -99,7 +120,7 @@ int midi_action(snd_seq_t *seq_handle) {
 				if (channels && !(channels & (1<<ev->data.note.channel)))
 					break;
 				if (ev->data.note.velocity != 0) {
-					note_on(ev->data.note.note, ev->data.note.velocity);
+					note_on(ev->data.note.note, ev->data.note.velocity, ev->data.note.channel);
 					cnt++;
 				}
 			}
@@ -169,8 +190,11 @@ int draw(void)
 		if (b->active) {
 			float br = b->bright * b->phase * 255.0;
 			br = br > 255 ? 255 : br;
+			olPushColor();
+			olMultColor(b->color);
 			uint32_t col = C_GREY((int)br);
 			circle(b->x, b->y, b->r, col);
+			olPopColor();
 			cnt++;
 		}
 	}

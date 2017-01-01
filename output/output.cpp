@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "output.h"
 
 #include <QApplication>
+#include <QString>
 #include "output_settings.h"
 
 typedef jack_default_audio_sample_t sample_t;
@@ -138,13 +139,13 @@ static inline void filter(float *x, float *y)
 
 #endif /* USE_GALVO_FILTERS */
 
-static inline float scale_color(float c, float c_max, float c_min, float blank, float power)
+static inline float scale_color(float c, int c_max, int c_min, int blank, int power)
 {
 	if ( c < 0.001 ) {
-		return blank;
+		return blank / 100.0f;
 	}
 	else {
-		return (c * power * (c_max - c_min)) + c_min;
+		return ((c * power / 100.f * (c_max - c_min)) + c_min) / 100.0f;
 	}
 }
 
@@ -188,16 +189,16 @@ static int process (nframes_t nframes, void *arg)
 			x = -x;
 		if (cfg->scan_flags & INVERT_Y)
 			y = -y;
-		if (!(cfg->scan_flags & ENABLE_X) && !cfg->safe)
+		if (!(cfg->scan_flags & ENABLE_X) && !(cfg->scan_flags & SAFE))
 			x = 0.0f;
-		if (!(cfg->scan_flags & ENABLE_Y) && !cfg->safe)
+		if (!(cfg->scan_flags & ENABLE_Y) && !(cfg->scan_flags & SAFE))
 			y = 0.0f;
-		if (cfg->safe && cfg->size < 0.10f) {
+		if ((cfg->scan_flags & SAFE) && cfg->scanSize < 10) {
 			x *= 0.10f;
 			y *= 0.10f;
 		} else {
-			x *= cfg->size;
-			y *= cfg->size;
+			x *= cfg->scanSize / 100.0f;
+			y *= cfg->scanSize / 100.0f;
 		}
 	
 		if (cfg->blank_flags & BLANK_INVERT) {
@@ -205,8 +206,7 @@ static int process (nframes_t nframes, void *arg)
 			g = 1.0f - g;
 			b = 1.0f - b;
 		}
-		if (!cfg->outputRed || !cfg->outputGreen || !cfg->outputBlue) {
-			// no RBG so convert to monochrome via HLV using value
+		if (cfg->color_flags & COLOR_MONOCHROME) {
 			float v = max(r,max(g,b));
 			r = g = b = v;
 		}
@@ -226,13 +226,13 @@ static int process (nframes_t nframes, void *arg)
 			g = 0.0f;
 			b = 0.0f;
 		}
-		if (!cfg->redEnable || !cfg->outputRed) {
+		if (!(cfg->color_flags & COLOR_RED)) {
 			r = 0.0f;
 		}
-		if (!cfg->greenEnable || !cfg->outputGreen) {
+		if (!(cfg->color_flags & COLOR_GREEN)) {
 			g = 0.0f;
 		}
-		if (!cfg->blueEnable || !cfg->outputBlue) {
+		if (!(cfg->color_flags & COLOR_BLUE)) {
 			b = 0.0f;
 		}
 		if (cfg->colorMode == COLORMODE_TTL) {
@@ -317,7 +317,10 @@ int main (int argc, char *argv[])
 
 	QApplication app(argc, argv);
 	OutputSettings settings;
-	
+
+	if (argc > 1)
+		settings.loadSettings(QString(argv[1]));
+
 	cfg = &settings.cfg;
 
 	if ((client = jack_client_open(jack_client_name, JackNullOption, &jack_status)) == 0) {

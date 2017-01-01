@@ -28,7 +28,9 @@ if(CURSES_FOUND AND FFMPEG_FOUND AND BUILD_TRACER)
     ${CMAKE_CURRENT_BINARY_DIR}/output.ild
   )
 
-  target_link_libraries(slides ol ${FFMPEG_LIBRARIES} ${CURSES_LIBRARIES})
+
+  target_link_libraries(slides ol ${FFMPEG_LIBRARIES} avresample
+	  ${CURSES_LIBRARIES})
 
   function(svg2ild NAME)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.ild

@@ -46,7 +46,7 @@ static float volume = 0.8;
 
 void circlescope_init(void **ctx, void *arg, OLRenderParams *params)
 {
-	if (audio_open(&actx, arg) != 0) {
+	if (audio_open(&actx, arg, 0) != 0) {
 		olLog("Audio open/init failed\n");
 		exit(1);
 	}

@@ -57,12 +57,12 @@ static void moreaudio(float *lb, float *rb, int samples)
 void videotracer_init(void **ctx, void *arg, OLRenderParams *params)
 {
 	cfg = arg;
-	if (audio_open(&actx, cfg->file) != 0) {
+	if (audio_open(&actx, cfg->file, 0) != 0) {
 		olLog("Audio open/init failed\n");
 		exit(1);
 	}
 
-	if (video_open(&vctx, cfg->file) != 0) {
+	if (video_open(&vctx, cfg->file, 0) != 0) {
 		olLog("Video open/init failed\n");
 		exit(1);
 	}

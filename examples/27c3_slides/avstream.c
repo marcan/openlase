@@ -1,5 +1,5 @@
 /*
-        OpenLase - a realtime laser graphics toolkit
+		OpenLase - a realtime laser graphics toolkit
 
 Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
 
@@ -23,6 +23,10 @@ static int inited = 0;
 
 #include "libol.h"
 #include "avstream.h"
+
+#ifndef AVCODEC_MAX_AUDIO_FRAME_SIZE
+# define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
+#endif
 
 #define AUDIO_BUF AVCODEC_MAX_AUDIO_FRAME_SIZE
 
@@ -74,9 +78,10 @@ int video_readframe(VContext *ctx, AVFrame **oFrame)
 int audio_readsamples(AContext *ctx, float *lb, float *rb, int samples)
 {
 	AVPacket packet;
-	int bytes, bytesDecoded;
+	int got_frame;
 	int input_samples;
 	int total = 0;
+	AVFrame *a_frame;
 	while (samples)
 	{
 		if (!ctx->buffered_samples) {
@@ -88,20 +93,24 @@ int audio_readsamples(AContext *ctx, float *lb, float *rb, int samples)
 				}
 			} while(packet.stream_index!=ctx->av.stream);
 
-			bytes = AUDIO_BUF * sizeof(short);
+			a_frame = av_frame_alloc();
+			a_frame->nb_samples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+			ctx->av.codecctx->get_buffer2(ctx->av.codecctx, a_frame, 0);
 
-			bytesDecoded = avcodec_decode_audio3(ctx->av.codecctx, ctx->iabuf, &bytes, &packet);
-			if(bytesDecoded < 0)
-			{
+			avcodec_decode_audio4(ctx->av.codecctx, a_frame, &got_frame, &packet);
+			if (!got_frame) {
 				olLog("Error while decoding audio frame\n");
 				memset(lb, 0, samples*sizeof(float));
 				memset(rb, 0, samples*sizeof(float));
 				return -1;
 			}
 
-			input_samples = bytes / (sizeof(short)*ctx->av.codecctx->channels);
+			input_samples = a_frame->nb_samples;
 
-			ctx->buffered_samples = audio_resample(ctx->resampler, (void*)ctx->oabuf, ctx->iabuf, input_samples);
+			ctx->buffered_samples = avresample_convert(ctx->resampler,
+				(uint8_t **)&ctx->oabuf, 0, AVCODEC_MAX_AUDIO_FRAME_SIZE,
+				a_frame->data, a_frame->linesize[0], input_samples);
+
 			ctx->poabuf = ctx->oabuf;
 		}
 
@@ -114,7 +123,7 @@ int audio_readsamples(AContext *ctx, float *lb, float *rb, int samples)
 	return total;
 }
 
-int video_open(VContext **octx, char *file)
+int video_open(VContext **octx, char *file, float start_pos)
 {
 	int i;
 	VContext *ctx;
@@ -123,14 +132,13 @@ int video_open(VContext **octx, char *file)
 		avstream_init();
 	
 	ctx = malloc(sizeof(VContext));
+	memset(ctx, 0, sizeof(*ctx));
 
-	if (av_open_input_file(&ctx->av.formatctx, file, NULL, 0, NULL) != 0)
+	if (avformat_open_input(&ctx->av.formatctx, file, NULL, NULL) != 0)
 		goto error;
 
-	if (av_find_stream_info(ctx->av.formatctx) < 0)
+	if (avformat_find_stream_info(ctx->av.formatctx, NULL) < 0)
 		goto error;
-
-	dump_format(ctx->av.formatctx, 0, file, 0);
 
 	int stream=-1;
 	for (i=0; i<ctx->av.formatctx->nb_streams; i++) {
@@ -149,10 +157,15 @@ int video_open(VContext **octx, char *file)
 	if (ctx->av.codec == NULL)
 		goto error;
 
-	if (avcodec_open(ctx->av.codecctx, ctx->av.codec) < 0)
+	if (avcodec_open2(ctx->av.codecctx, ctx->av.codec, NULL) < 0)
 		goto error;
 
-	ctx->frame = avcodec_alloc_frame();
+	ctx->frame = av_frame_alloc();
+
+	if (start_pos) {
+		av_seek_frame(ctx->av.formatctx, -1, (int64_t)(start_pos * AV_TIME_BASE), 0);
+		avcodec_flush_buffers(ctx->av.codecctx);
+	}
 
 	*octx = ctx;
 	return 0;
@@ -168,13 +181,13 @@ int video_close(VContext *ctx)
 {
 	av_free(ctx->frame);
 	avcodec_close(ctx->av.codecctx);
-	av_close_input_file(ctx->av.formatctx);
+//	av_close_input_file(ctx->av.formatctx);
 	free(ctx);
 
 	return 0;
 }
 
-int audio_open(AContext **octx, char *file)
+int audio_open(AContext **octx, char *file, float start_pos)
 {
 	int i;
 	AContext *ctx;
@@ -185,15 +198,12 @@ int audio_open(AContext **octx, char *file)
 	ctx = malloc(sizeof(AContext));
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->oabuf = malloc(AUDIO_BUF * sizeof(float));
-	ctx->iabuf = malloc(AUDIO_BUF * sizeof(short));
 
-	if (av_open_input_file(&ctx->av.formatctx, file, NULL, 0, NULL) != 0)
+	if (avformat_open_input(&ctx->av.formatctx, file, NULL, NULL) != 0)
 		goto error;
 
-	if (av_find_stream_info(ctx->av.formatctx) < 0)
+	if (avformat_find_stream_info(ctx->av.formatctx, NULL) < 0)
 		goto error;
-
-	dump_format(ctx->av.formatctx, 0, file, 0);
 
 	int stream=-1;
 	for (i=0; i<ctx->av.formatctx->nb_streams; i++) {
@@ -212,26 +222,34 @@ int audio_open(AContext **octx, char *file)
 	if (ctx->av.codec == NULL)
 		goto error;
 
-	if (avcodec_open(ctx->av.codecctx, ctx->av.codec) < 0)
+	if (avcodec_open2(ctx->av.codecctx, ctx->av.codec, NULL) < 0)
 		goto error;
 
-	ctx->resampler = av_audio_resample_init(2, ctx->av.codecctx->channels,
-										   48000, ctx->av.codecctx->sample_rate,
-										   SAMPLE_FMT_FLT, ctx->av.codecctx->sample_fmt,
-										   16, 10, 0, 0.8);
+	ctx->resampler = avresample_alloc_context();
+	av_opt_set_int(ctx->resampler, "in_channel_layout", ctx->av.codecctx->channel_layout, 0);
+	av_opt_set_int(ctx->resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
+	av_opt_set_int(ctx->resampler, "in_sample_rate", ctx->av.codecctx->sample_rate, 0);
+	av_opt_set_int(ctx->resampler, "out_sample_rate", 48000, 0);
+	av_opt_set_int(ctx->resampler, "in_sample_fmt", ctx->av.codecctx->sample_fmt, 0);
+	av_opt_set_int(ctx->resampler, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0);
+	if (avresample_open(ctx->resampler))
+		return -1;
 
 	if (!ctx->resampler)
 		goto error;
 
 	ctx->buffered_samples = 0;
 
+	if (start_pos) {
+		av_seek_frame(ctx->av.formatctx, -1, (int64_t)(start_pos * AV_TIME_BASE), 0);
+		avcodec_flush_buffers(ctx->av.codecctx);
+	}
+
 	*octx = ctx;
 	return 0;
 error:
 	if (ctx->oabuf)
 		free(ctx->oabuf);
-	if (ctx->iabuf)
-		free(ctx->iabuf);
 	// todo: cleanup avcodec stuff...
 	free(ctx);
 	*octx = NULL;
@@ -241,10 +259,9 @@ error:
 int audio_close(AContext *ctx)
 {
 	avcodec_close(ctx->av.codecctx);
-	audio_resample_close(ctx->resampler);
-	av_close_input_file(ctx->av.formatctx);
+	avresample_close(ctx->resampler);
+//	av_close_input_file(ctx->av.formatctx);
 	free(ctx->oabuf);
-	free(ctx->iabuf);
 	free(ctx);
 	return 0;
 }

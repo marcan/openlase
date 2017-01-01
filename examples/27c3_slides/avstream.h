@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavresample/avresample.h>
+#include <libavutil/opt.h>
+#include <libswscale/swscale.h>
 
 struct avfctx {
 	AVFormatContext *formatctx;
@@ -32,7 +35,7 @@ struct avfctx {
 
 struct _acontext {
 	struct avfctx av;
-	ReSampleContext *resampler;
+	AVAudioResampleContext *resampler;
 	float *oabuf;
 	short *iabuf;
 	int buffered_samples;
@@ -47,11 +50,11 @@ struct _vcontext {
 typedef struct _acontext AContext;
 typedef struct _vcontext VContext;
 
-int video_open(VContext **ctx, char *file);
+int video_open(VContext **ctx, char *file, float start_pos);
 int video_readframe(VContext *ctx, AVFrame **oFrame);
 int video_close(VContext *ctx);
 
-int audio_open(AContext **ctx, char *file);
+int audio_open(AContext **ctx, char *file, float start_pos);
 int audio_readsamples(AContext *ctx, float *lb, float *rb, int samples);
 int audio_close(AContext *ctx);
 

@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
 	OL_LINESTRIP,
 	OL_BEZIERSTRIP,
@@ -143,5 +147,9 @@ void olLog(const char *fmt, ...);
 typedef void (*LogCallbackFunc)(const char *msg);
 
 void olSetLogCallback(LogCallbackFunc f);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

@@ -33,11 +33,13 @@ else()
   message(STATUS "Will NOT build tracer")
 endif()
 
-add_library (openlase SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
-target_link_libraries (openlase ${CMAKE_THREAD_LIBS_INIT} m jack)
-set_target_properties(openlase PROPERTIES VERSION 0 SOVERSION 0)
+add_library (ol SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
+target_link_libraries (ol ${CMAKE_THREAD_LIBS_INIT} m jack)
+set_target_properties(ol PROPERTIES VERSION 0 SOVERSION 0)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/genfont.py
     MAIN_DEPENDENCY laserfont.svg
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/genfont.py ${CMAKE_CURRENT_SOURCE_DIR}/laserfont.svg ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c default_font)
+
+install(TARGETS ol LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

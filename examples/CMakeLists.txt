@@ -26,20 +26,20 @@ add_executable(scope scope.c)
 target_link_libraries(scope ${JACK_LIBRARIES} m)
 
 add_executable(simple simple.c)
-target_link_libraries(simple openlase)
+target_link_libraries(simple ol)
 
 add_executable(pong pong.c)
-target_link_libraries(pong openlase)
+target_link_libraries(pong ol)
 
 if(ALSA_FOUND)
   add_executable(midiview midiview.c)
-  target_link_libraries(midiview openlase ${ALSA_LIBRARIES})
+  target_link_libraries(midiview ol ${ALSA_LIBRARIES})
 else()
   message(STATUS "Will NOT build midiview (ALSA missing)")
 endif()
 
 add_executable(harp harp.c)
-target_link_libraries(harp openlase)
+target_link_libraries(harp ol)
 
 #add_subdirectory(27c3_slides)
 

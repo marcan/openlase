@@ -49,6 +49,7 @@ if(NOT DEFINED BUILD_TRACER)
   set(BUILD_TRACER "Y" CACHE BOOL "Build the image tracer (x86 only)" FORCE)
 endif()
 
+add_subdirectory (include)
 add_subdirectory (libol)
 add_subdirectory (output)
 add_subdirectory (tools)

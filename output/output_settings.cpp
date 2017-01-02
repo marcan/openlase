@@ -109,12 +109,19 @@ OutputSettings::OutputSettings(QWidget *parent)
 
 	Setting(colorMode);
 
+	Setting(cLimit);
+	Setting(cRatio);
+	Setting(dPower);
+	Setting(dRatio);
+
 	SettingBit(scan_flags, xEnable, ENABLE_X);
 	SettingBit(scan_flags, yEnable, ENABLE_Y);
 	SettingBit(scan_flags, xInvert, INVERT_X);
 	SettingBit(scan_flags, yInvert, INVERT_Y);
 	SettingBit(scan_flags, xySwap, SWAP_XY);
 	SettingBit(scan_flags, safe, SAFE);
+	SettingBit(scan_flags, cFilterEnable, FILTER_C);
+	SettingBit(scan_flags, dFilterEnable, FILTER_D);
 
 	SettingBit(blank_flags, outputEnable, OUTPUT_ENABLE);
 	SettingBit(blank_flags, blankingEnable, BLANK_ENABLE);
@@ -284,6 +291,11 @@ void OutputSettings::resetDefaults()
 	cfg.blueMin = 0;
 	cfg.blueBlank = 0;
 	cfg.blueDelay = 0;
+
+	cfg.cLimit = 70;
+	cfg.cRatio = 300;
+	cfg.dPower = 50;
+	cfg.dRatio = 50;
 
 	cfg.colorMode = COLORMODE_ANALOG;
 	cfg.scan_flags = ENABLE_X | ENABLE_Y | SAFE;

@@ -92,52 +92,43 @@ static void transform(sample_t *ox, sample_t *oy)
 	*oy /= w;
 }
 
-/* The following filters attempt to compensate for imperfections in my galvos.
-You'll probably want to turn them off for anything else */
-#undef USE_GALVO_FILTERS
-
-#ifdef USE_GALVO_FILTERS
-
-#define LIMIT 0.007
-#define RATIO 0.30
-
 static void cfilter(float *c, float *p)
 {
 	float delta = fabsf(*c - *p);
-	if (delta > LIMIT) {
+	if (delta > (cfg->cLimit / 1000.0f)) {
 		if (*c > *p)
-			*p = *c - LIMIT;
+			*p = *c - (cfg->cLimit / 1000.0f);
 		else
-			*p = *c + LIMIT;
+			*p = *c + (cfg->cLimit / 1000.0f);
 	} else {
-		*p = (1-RATIO) * *p + RATIO * *c;
+		*p = (1 - (cfg->cRatio / 1000.0f)) * *p + (cfg->cRatio / 1000.0f) * *c;
 	}
 
 	*c += *c - *p;
 }
 
-#define DPOWER 0.05
-#define DRATIO 0.05
-
 static void dfilter(float *c, float *p)
 {
 	float delta = *c - *p;
-	*c += DPOWER*delta;
 
-	*p = (1-DRATIO) * *p + DRATIO * *c;
+	*p = (1 - (cfg->dRatio / 1000.0f)) * *p + (cfg->dRatio / 1000.0f) * *c;
+
+	*c += (cfg->dPower / 1000.0f) * delta;
 }
 
 static inline void filter(float *x, float *y)
 {
 	static float px=0, py=0;
 	static float dx=0, dy=0;
-	dfilter(x,&dx);
-	dfilter(y,&dy);
-	cfilter(x,&px);
-	cfilter(y,&py);
+	if (cfg->scan_flags & FILTER_D) {
+		dfilter(x, &dx);
+		dfilter(y, &dy);
+	}
+	if (cfg->scan_flags & FILTER_C) {
+		cfilter(x, &px);
+		cfilter(y, &py);
+	}
 }
-
-#endif /* USE_GALVO_FILTERS */
 
 static inline float scale_color(float c, int c_max, int c_min, int blank, int power)
 {
@@ -262,11 +253,9 @@ static int process (nframes_t nframes, void *arg)
 		} else {
 		    frames_dead = 0;
 		}
-		
-#ifdef USE_GALVO_FILTERS
+
 		filter(&x, &y);
-#endif
-		
+
 		*o_x++ = x;
 		*o_y++ = y;
 		buf_r[ibuf_r] = r;

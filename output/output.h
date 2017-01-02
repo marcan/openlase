@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define INVERT_Y      0x08
 #define SWAP_XY       0x10
 #define SAFE          0x20
+#define FILTER_C      0x40
+#define FILTER_D      0x80
 
 #define OUTPUT_ENABLE 0x01
 #define BLANK_ENABLE  0x02
@@ -62,6 +64,11 @@ typedef struct {
 	int blueDelay;
 
 	float transform[3][3];
+
+	int cLimit;
+	int cRatio;
+	int dPower;
+	int dRatio;
 
 	int colorMode;
 	int scan_flags;

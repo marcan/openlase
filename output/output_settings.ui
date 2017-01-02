@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>735</width>
-    <height>640</height>
+    <width>812</width>
+    <height>686</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -231,6 +231,69 @@
                  </property>
                  <property name="checked">
                   <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_4">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Filters</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_2">
+               <item row="2" column="0">
+                <widget class="QCheckBox" name="dFilterEnable">
+                 <property name="text">
+                  <string>D</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QCheckBox" name="cFilterEnable">
+                 <property name="text">
+                  <string>C</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QSpinBox" name="cRatio">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QSpinBox" name="cLimit">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QSpinBox" name="dPower">
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QSpinBox" name="dRatio">
+                 <property name="maximum">
+                  <number>1000</number>
                  </property>
                 </widget>
                </item>
@@ -1128,7 +1191,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>735</width>
+     <width>812</width>
      <height>26</height>
     </rect>
    </property>

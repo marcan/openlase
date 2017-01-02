@@ -646,6 +646,9 @@ static void render_object(Object *obj)
 		out_start = &last_render_point;
 		skip_out_start_wait = 1;
 	} else if (distance > params.snap) {
+		for (i=0; i<params.end_wait; i++) {
+			addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
+		}
 		for (i=0; i<points; i++) {
 			addrndpoint(last_render_point.x + (dx/(float)points) * i,
 						last_render_point.y + (dy/(float)points) * i,
@@ -705,14 +708,8 @@ static void render_object(Object *obj)
 		}
 	}
 	if(!out_start) {
-		for (i=0; i<params.end_wait; i++) {
-			addrndpoint(end->x, end->y, C_BLACK);
-		}
 		last_render_point = *end;
 	} else {
-		for (i=0; i<params.end_wait; i++) {
-			addrndpoint(out_start->x, out_start->y, C_BLACK);
-		}
 		last_render_point = *out_start;
 	}
 }
@@ -747,8 +744,6 @@ float olRenderFrame(int max_fps)
 					continue;
 				float dx = wframe.objects[i].points[0].x - closest_to.x;
 				float dy = wframe.objects[i].points[0].y - closest_to.y;
-				dx = wframe.objects[i].points[0].x + 1;
-				dy = wframe.objects[i].points[0].y + 1;
 				float distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
 				if (!closest || distance < dclosest) {
 					closest = &wframe.objects[i];

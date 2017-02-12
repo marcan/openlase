@@ -619,7 +619,7 @@ static void addrndpoint(float x, float y, uint32_t color)
 	frames[cwbuf].pnext++;
 }
 
-static void render_object(Object *obj)
+static int render_object(Object *obj)
 {
 	int i,j;
 	Point *start = &obj->points[0];
@@ -641,7 +641,7 @@ static void render_object(Object *obj)
 			break;
 	}
 	if (i == obj->pointcnt) // null object
-		return;
+		return 0;
 
 	if (start->x < obj->bbox[0][0] || start->x > obj->bbox[1][0] ||
 		start->y < obj->bbox[0][1] || start->y > obj->bbox[1][1]) {
@@ -714,6 +714,7 @@ static void render_object(Object *obj)
 	} else {
 		last_render_point = *out_start;
 	}
+	return 1;
 }
 
 float olRenderFrame(int max_fps)
@@ -775,11 +776,11 @@ float olRenderFrame(int max_fps)
 				}
 			}
 			//olLog("%d (%d) (nearest to %f,%f)\n", closest - wframe.objects, closest->pointcnt, closest_to.x, closest_to.y);
-			render_object(closest);
+			if (render_object(closest))
+				closest_to = last_render_point;
 			//olLog("[%d] ", frames[cwbuf].pnext);
 			//olLog("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
 			closest->pointcnt = 0;
-			closest_to = last_render_point;
 			cnt--;
 			last_info.objects++;
 		}

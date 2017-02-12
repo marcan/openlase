@@ -60,7 +60,7 @@ cdef extern from "libol.h":
 	void olSetRenderParams(OLRenderParams *params)
 	void olGetRenderParams(OLRenderParams *params)
 
-	ctypedef void (*AudioCallbackFunc)(float *leftbuf, float *rightbuf, int samples)
+	ctypedef void (*AudioCallbackFunc)(float *leftbuf, float *rightbuf, int samples) except *
 
 	void olSetAudioCallback(AudioCallbackFunc f)
 
@@ -112,7 +112,7 @@ cdef extern from "libol.h":
 	void olLine(float x1, float y1, float x2, float y2, uint32_t color)
 	void olDot(float x, float y, int points, uint32_t color)
 
-	float olRenderFrame(int max_fps) nogil
+	float olRenderFrame(int max_fps) nogil except *
 
 	void olGetFrameInfo(OLFrameInfo *info)
 
@@ -244,7 +244,7 @@ cpdef scale(tuple coord):
 	olScale(x, y)
 
 _py_audiocb = None
-cdef void _audiocb(float *l, float *r, int samples) with gil:
+cdef void _audiocb(float *l, float *r, int samples) except * with gil:
 	global _py_audiocb
 	if _py_audiocb is not None:
 		buf = _py_audiocb(samples)
@@ -377,7 +377,7 @@ cpdef dot(tuple coord, int points, uint32_t color):
 	x, y = coord
 	olDot(x, y, points, color)
 
-cpdef float renderFrame(int max_fps):
+def renderFrame(int max_fps):
 	cdef float ret
 	with nogil:
 		ret = olRenderFrame(max_fps)

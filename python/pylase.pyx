@@ -93,14 +93,14 @@ cdef extern from "libol.h":
 	void olPopColor()
 
 	void olBegin(int prim)
-	void olVertex(float x, float y, uint32_t color)
-	void olVertex3(float x, float y, float z, uint32_t color)
-	void olEnd()
+	void olVertex(float x, float y, uint32_t color) except *
+	void olVertex3(float x, float y, float z, uint32_t color) except *
+	void olEnd() except *
 
 	void olTransformVertex3(float *x, float *y, float *z)
 
-	ctypedef void (*ShaderFunc)(float *x, float *y, uint32_t *color)
-	ctypedef void (*Shader3Func)(float *x, float *y, float *z, uint32_t *color)
+	ctypedef void (*ShaderFunc)(float *x, float *y, uint32_t *color) except *
+	ctypedef void (*Shader3Func)(float *x, float *y, float *z, uint32_t *color) except *
 
 	void olSetVertexPreShader(ShaderFunc f)
 	void olSetVertexShader(ShaderFunc f)
@@ -108,9 +108,9 @@ cdef extern from "libol.h":
 
 	void olSetPixelShader(ShaderFunc f)
 
-	void olRect(float x1, float y1, float x2, float y2, uint32_t color)
-	void olLine(float x1, float y1, float x2, float y2, uint32_t color)
-	void olDot(float x, float y, int points, uint32_t color)
+	void olRect(float x1, float y1, float x2, float y2, uint32_t color) except *
+	void olLine(float x1, float y1, float x2, float y2, uint32_t color) except *
+	void olDot(float x, float y, int points, uint32_t color) except *
 
 	float olRenderFrame(int max_fps) nogil except *
 
@@ -295,38 +295,38 @@ cpdef pushColor(): olPushColor()
 cpdef popColor(): olPopColor()
 
 cpdef begin(int prim): olBegin(prim)
-cpdef vertex(tuple coord, uint32_t color):
+def vertex(coord, color):
 	x, y = coord
 	olVertex(x, y, color)
-cpdef vertex3(tuple coord, uint32_t color):
+def vertex3(coord, color):
 	x, y, z = coord
 	olVertex3(x, y, z, color)
-cpdef end(): olEnd()
+def end(): olEnd()
 
 cpdef tuple transformVertex3(float x, float y, float z):
 	olTransformVertex3(&x, &y, &z)
 	return x, y, z
 
 _py_vpreshader = None
-cdef void _vpreshader(float *x, float *y, uint32_t *color) with gil:
+cdef void _vpreshader(float *x, float *y, uint32_t *color) except * with gil:
 	global _py_vpreshader
 	if _py_vpreshader is not None:
 		(x[0], y[0]), color[0] = _py_vpreshader((x[0], y[0]), color[0])
 
 _py_vshader = None
-cdef void _vshader(float *x, float *y, uint32_t *color) with gil:
+cdef void _vshader(float *x, float *y, uint32_t *color) except * with gil:
 	global _py_vshader
 	if _py_vshader is not None:
 		(x[0], y[0]), color[0] = _py_vshader((x[0], y[0]), color[0])
 
 _py_v3shader = None
-cdef void _v3shader(float *x, float *y, float *z, uint32_t *color) with gil:
+cdef void _v3shader(float *x, float *y, float *z, uint32_t *color) except * with gil:
 	global _py_v3shader
 	if _py_v3shader is not None:
 		(x[0], y[0], z[0]), color[0] = _py_v3shader((x[0], y[0], z[0]), color[0])
 
 _py_pshader = None
-cdef void _pshader(float *x, float *y, uint32_t *color) with gil:
+cdef void _pshader(float *x, float *y, uint32_t *color) except * with gil:
 	global _py_pshader
 	if _py_pshader is not None:
 		(x[0], y[0]), color[0] = _py_pshader((x[0], y[0]), color[0])
@@ -363,17 +363,17 @@ cpdef setPixelShader(object func):
 	else:
 		olSetPixelShader(NULL)
 
-cpdef rect(tuple start, tuple end, uint32_t color):
+def rect(start, end, color):
 	x1, y1 = start
 	x2, y2 = end
 	olRect(x1, y1, x2, y2, color)
 
-cpdef line(tuple start, tuple end, uint32_t color):
+def line(start, end, color):
 	x1, y1 = start
 	x2, y2 = end
 	olLine(x1, y1, x2, y2, color)
 
-cpdef dot(tuple coord, int points, uint32_t color):
+def dot(coord, points, color):
 	x, y = coord
 	olDot(x, y, points, color)
 

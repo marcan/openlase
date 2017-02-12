@@ -47,6 +47,7 @@ typedef struct {
 typedef struct {
 	int pointcnt;
 	Point *points;
+	float bbox[2][2];
 } Object;
 
 typedef struct {
@@ -337,6 +338,7 @@ void olBegin(int prim)
 	}
 	dstate.curobj = wframe.objects + wframe.objcnt;
 	memset(dstate.curobj, 0, sizeof(Object));
+	memcpy(dstate.curobj->bbox, bbox, sizeof(bbox));
 	dstate.curobj->points = wframe.points + wframe.psnext;
 	dstate.prim = prim;
 	dstate.state = 0;
@@ -632,8 +634,8 @@ static void render_object(Object *obj)
 
 	Point *ip = obj->points;
 	for (i=0; i<obj->pointcnt; i++, ip++) {
-		if (ip->x < bbox[0][0] || ip->x > bbox[1][0] ||
-			ip->y < bbox[0][1] || ip->y > bbox[1][1])
+		if (ip->x < obj->bbox[0][0] || ip->x > obj->bbox[1][0] ||
+			ip->y < obj->bbox[0][1] || ip->y > obj->bbox[1][1])
 			continue;
 		if (ip->color != C_BLACK)
 			break;
@@ -641,8 +643,8 @@ static void render_object(Object *obj)
 	if (i == obj->pointcnt) // null object
 		return;
 
-	if (start->x < bbox[0][0] || start->x > bbox[1][0] ||
-		start->y < bbox[0][1] || start->y > bbox[1][1]) {
+	if (start->x < obj->bbox[0][0] || start->x > obj->bbox[1][0] ||
+		start->y < obj->bbox[0][1] || start->y > obj->bbox[1][1]) {
 		out_start = &last_render_point;
 		skip_out_start_wait = 1;
 	} else if (distance > params.snap) {
@@ -662,8 +664,8 @@ static void render_object(Object *obj)
 	ip = obj->points;
 	for (i=0; i<obj->pointcnt; i++, ip++) {
 		int inside = 1;
-		if (ip->x < bbox[0][0] || ip->x > bbox[1][0] ||
-			ip->y < bbox[0][1] || ip->y > bbox[1][1])
+		if (ip->x < obj->bbox[0][0] || ip->x > obj->bbox[1][0] ||
+			ip->y < obj->bbox[0][1] || ip->y > obj->bbox[1][1])
 			inside = 0;
 		if (!out_start) {
 			if (inside) {

@@ -175,6 +175,24 @@ cdef class RenderParams:
 		self.render_flags = RENDER_GRAYSCALE
 		self.min_length = 0
 		self.max_framelen = 0
+	def copy(self):
+		new = RenderParams()
+		new.rate = self.rate
+		new.on_speed = self.on_speed
+		new.off_speed = self.off_speed
+		new.start_wait = self.start_wait
+		new.start_dwell = self.start_dwell
+		new.curve_dwell = self.curve_dwell
+		new.corner_dwell = self.corner_dwell
+		new.end_dwell = self.end_dwell
+		new.end_wait = self.end_wait
+		new.curve_angle = self.curve_angle
+		new.flatness = self.flatness
+		new.snap = self.snap
+		new.render_flags = self.render_flags
+		new.min_length = self.min_length
+		new.max_framelen = self.max_framelen
+		return new
 
 cpdef setRenderParams(params):
 	cdef OLRenderParams cparams

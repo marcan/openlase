@@ -835,17 +835,13 @@ float olRenderFrame(int max_fps)
 		chkpts(0);
 		last_info.resampled_points = count;
 	}
-
-	float last_x, last_y;
 	if (count) {
-		last_x = frames[cwbuf].points[count-1].x;
-		last_y = frames[cwbuf].points[count-1].y;
-	} else {
-		last_x = last_y = 0;
+		last_render_point.x = frames[cwbuf].points[count-1].x;
+		last_render_point.y = frames[cwbuf].points[count-1].y;
 	}
 	while(count < min_points) {
-		frames[cwbuf].points[count].x = last_x;
-		frames[cwbuf].points[count].y = last_y;
+		frames[cwbuf].points[count].x = last_render_point.x;
+		frames[cwbuf].points[count].y = last_render_point.y;
 		frames[cwbuf].points[count].color = C_BLACK;
 		count++;
 		last_info.padding_points++;

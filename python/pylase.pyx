@@ -290,7 +290,7 @@ cpdef multMatrix3(object m):
 	cdef float cm[16]
 	for i in range(16):
 		cm[i] = m[i]
-	olMultMatrix(cm)
+	olMultMatrix3(cm)
 
 cpdef rotate3X(float theta): olRotate3X(theta)
 cpdef rotate3Y(float theta): olRotate3Y(theta)

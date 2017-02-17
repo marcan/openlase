@@ -531,33 +531,40 @@ static void point_to(float x, float y, uint32_t color)
 	return;
 }
 
+void olTransformVertex(float *x, float *y)
+{
+	float nx = mtx2d[0][0] * *x + mtx2d[0][1] * *y + mtx2d[0][2];
+	float ny = mtx2d[1][0] * *x + mtx2d[1][1] * *y + mtx2d[1][2];
+	float nw = mtx2d[2][0] * *x + mtx2d[2][1] * *y + mtx2d[2][2];
+
+	*x = nx / nw;
+	*y = ny / nw;
+}
+
 void olVertex(float x, float y, uint32_t color)
 {
 	if (!dstate.curobj)
 		return;
-
-	float nx, ny;
 
 	if(vpreshader)
 		vpreshader(&x, &y, &color);
 
 	color = colmul(color,curcol);
 
-	nx = mtx2d[0][0] * x + mtx2d[0][1] * y + mtx2d[0][2];
-	ny = mtx2d[1][0] * x + mtx2d[1][1] * y + mtx2d[1][2];
+	olTransformVertex(&x, &y);
 
 	if(vshader)
-		vshader(&nx, &ny, &color);
+		vshader(&x, &y, &color);
 
 	switch (dstate.prim) {
 		case OL_LINESTRIP:
-			line_to(nx,ny,color);
+			line_to(x,y,color);
 			break;
 		case OL_BEZIERSTRIP:
-			bezier_to(nx,ny,color);
+			bezier_to(x,y,color);
 			break;
 		case OL_POINTS:
-			point_to(nx,ny,color);
+			point_to(x,y,color);
 			break;
 	}
 }

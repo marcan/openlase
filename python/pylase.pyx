@@ -97,6 +97,7 @@ cdef extern from "libol.h":
 	void olVertex3(float x, float y, float z, uint32_t color) except *
 	void olEnd() except *
 
+	void olTransformVertex(float *x, float *y)
 	void olTransformVertex3(float *x, float *y, float *z)
 
 	ctypedef void (*ShaderFunc)(float *x, float *y, uint32_t *color) except *
@@ -320,6 +321,10 @@ def vertex3(coord, color):
 	x, y, z = coord
 	olVertex3(x, y, z, color)
 def end(): olEnd()
+
+cpdef tuple transformVertex(float x, float y):
+	olTransformVertex(&x, &y)
+	return x, y
 
 cpdef tuple transformVertex3(float x, float y, float z):
 	olTransformVertex3(&x, &y, &z)

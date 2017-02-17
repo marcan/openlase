@@ -622,15 +622,8 @@ static void addrndpoint(float x, float y, uint32_t color)
 static int render_object(Object *obj)
 {
 	int i,j;
-	Point *start = &obj->points[0];
-	Point *end = &obj->points[obj->pointcnt-1];
-	float dx = start->x - last_render_point.x;
-	float dy = start->y - last_render_point.y;
-	float distance = fmaxf(fabsf(dx),fabsf(dy));
-	int points = ceilf(distance/params.off_speed);
-	chkpts(2 * (obj->pointcnt + params.start_wait + params.end_wait + points));
-	Point *out_start = NULL;
-	int skip_out_start_wait = 0;
+	// heuristic... might overflow in pathological cases
+	chkpts(3 * (obj->pointcnt + params.start_wait + params.end_wait));
 
 	Point *ip = obj->points;
 	for (i=0; i<obj->pointcnt; i++, ip++) {
@@ -643,76 +636,35 @@ static int render_object(Object *obj)
 	if (i == obj->pointcnt) // null object
 		return 0;
 
-	if (start->x < obj->bbox[0][0] || start->x > obj->bbox[1][0] ||
-		start->y < obj->bbox[0][1] || start->y > obj->bbox[1][1]) {
-		out_start = &last_render_point;
-		skip_out_start_wait = 1;
-	} else if (distance > params.snap) {
-		for (i=0; i<params.end_wait; i++) {
-			addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
-		}
-		for (i=0; i<points; i++) {
-			addrndpoint(last_render_point.x + (dx/(float)points) * i,
-						last_render_point.y + (dy/(float)points) * i,
-						C_BLACK);
-		}
-		for (i=0; i<params.start_wait; i++) {
-			addrndpoint(start->x, start->y, C_BLACK);
-		}
-	}
-	Point *op = &frames[cwbuf].points[frames[cwbuf].pnext];
 	ip = obj->points;
+	int prev_inside = 0;
 	for (i=0; i<obj->pointcnt; i++, ip++) {
 		int inside = 1;
 		if (ip->x < obj->bbox[0][0] || ip->x > obj->bbox[1][0] ||
 			ip->y < obj->bbox[0][1] || ip->y > obj->bbox[1][1])
 			inside = 0;
-		if (!out_start) {
-			if (inside) {
-				*op++ = *ip;
-				frames[cwbuf].pnext++;
-			} else {
-				out_start = ip;
-				last_render_point = *ip;
-			}
-		} else if (inside) {
-			if (!skip_out_start_wait) {
-				for (j=0; j<params.end_wait; j++) {
-					*op = *out_start;
-					op->color = C_BLACK;
-					op++;
-					frames[cwbuf].pnext++;
-				}
-			}
-			skip_out_start_wait = 0;
-			float dx = ip->x - out_start->x;
-			float dy = ip->y - out_start->y;
+		if (inside && !prev_inside) {
+			float dx = ip->x - last_render_point.x;
+			float dy = ip->y - last_render_point.y;
 			float distance = fmaxf(fabsf(dx),fabsf(dy));
 			int points = ceilf(distance/params.off_speed);
-			if (distance > params.snap) {
-				for (j=0; j<points; j++) {
-					op->x = out_start->x + (dx/(float)points) * j;
-					op->y = out_start->y + (dy/(float)points) * j;
-					op->color = C_BLACK;
-					op++;
-					frames[cwbuf].pnext++;
-				}
-				for (j=0; j<params.start_wait; j++) {
-					*op = *ip;
-					op->color = C_BLACK;
-					op++;
-					frames[cwbuf].pnext++;
-				}
+			for (j=0; j<params.end_wait; j++) {
+				addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
 			}
-			*op++ = *ip;
-			frames[cwbuf].pnext++;
-			out_start = NULL;
+			for (j=0; j<points; j++) {
+				addrndpoint(last_render_point.x + (dx/(float)points) * j,
+							last_render_point.y + (dy/(float)points) * j,
+							C_BLACK);
+			}
+			for (j=0; j<params.start_wait; j++) {
+				addrndpoint(ip->x, ip->y, C_BLACK);
+			}
 		}
-	}
-	if(!out_start) {
-		last_render_point = *end;
-	} else {
-		last_render_point = *out_start;
+		if (inside) {
+			last_render_point = *ip;
+			addrndpoint(ip->x, ip->y, ip->color);
+		}
+		prev_inside = inside;
 	}
 	return 1;
 }
@@ -737,7 +689,7 @@ float olRenderFrame(int max_fps)
 	int clinv = 0;
 
 	if (!(params.render_flags & RENDER_NOREORDER)) {
-		Point closest_to = {-1,-1,0}; // first look for the object nearest the topleft
+		Point closest_to = {-1,-1,0}; // first look for the object nearest the botleft
 		while(cnt) {
 			Object *closest = NULL;
 			for (i=0; i<wframe.objcnt; i++) {

@@ -648,16 +648,18 @@ static int render_object(Object *obj)
 			float dy = ip->y - last_render_point.y;
 			float distance = fmaxf(fabsf(dx),fabsf(dy));
 			int points = ceilf(distance/params.off_speed);
-			for (j=0; j<params.end_wait; j++) {
-				addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
-			}
-			for (j=0; j<points; j++) {
-				addrndpoint(last_render_point.x + (dx/(float)points) * j,
-							last_render_point.y + (dy/(float)points) * j,
-							C_BLACK);
-			}
-			for (j=0; j<params.start_wait; j++) {
-				addrndpoint(ip->x, ip->y, C_BLACK);
+			if (distance > params.snap) {
+				for (j=0; j<params.end_wait; j++) {
+					addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
+				}
+				for (j=0; j<points; j++) {
+					addrndpoint(last_render_point.x + (dx/(float)points) * j,
+								last_render_point.y + (dy/(float)points) * j,
+								C_BLACK);
+				}
+				for (j=0; j<params.start_wait; j++) {
+					addrndpoint(ip->x, ip->y, C_BLACK);
+				}
 			}
 		}
 		if (inside) {

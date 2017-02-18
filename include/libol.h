@@ -29,7 +29,7 @@ extern "C" {
 enum {
 	OL_LINESTRIP,
 	OL_BEZIERSTRIP,
-	OL_POINTS
+	OL_POINTS,
 };
 
 #define C_RED   0xff0000
@@ -49,6 +49,7 @@ enum {
 	RENDER_GRAYSCALE = 1,
 	RENDER_NOREORDER = 2,
 	RENDER_NOREVERSE = 4,
+	RENDER_CULLDARK = 8,
 };
 
 typedef struct {
@@ -67,6 +68,7 @@ typedef struct {
 	int render_flags;
 	int min_length;
 	int max_framelen;
+	float z_near;
 } OLRenderParams;
 
 typedef struct {
@@ -117,9 +119,12 @@ void olPopColor(void);
 void olBegin(int prim);
 void olVertex(float x, float y, uint32_t color);
 void olVertex3(float x, float y, float z, uint32_t color);
+void olVertex2Z(float x, float y, float z, uint32_t color);
 void olEnd(void);
 
+void olTransformVertex(float *x, float *y);
 void olTransformVertex3(float *x, float *y, float *z);
+void olTransformVertex4(float *x, float *y, float *z, float *w);
 
 typedef void (*ShaderFunc)(float *x, float *y, uint32_t *color);
 typedef void (*Shader3Func)(float *x, float *y, float *z, uint32_t *color);
@@ -129,6 +134,7 @@ void olSetVertexShader(ShaderFunc f);
 void olSetVertex3Shader(Shader3Func f);
 
 void olSetPixelShader(ShaderFunc f);
+void olSetPixel3Shader(Shader3Func f);
 
 void olRect(float x1, float y1, float x2, float y2, uint32_t color);
 void olLine(float x1, float y1, float x2, float y2, uint32_t color);

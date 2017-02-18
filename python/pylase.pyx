@@ -94,11 +94,13 @@ cdef extern from "libol.h":
 
 	void olBegin(int prim)
 	void olVertex(float x, float y, uint32_t color) except *
+	void olVertex2Z(float x, float y, float z, uint32_t color) except *
 	void olVertex3(float x, float y, float z, uint32_t color) except *
 	void olEnd() except *
 
 	void olTransformVertex(float *x, float *y)
 	void olTransformVertex3(float *x, float *y, float *z)
+	void olTransformVertex4(float *x, float *y, float *z, float *w)
 
 	ctypedef void (*ShaderFunc)(float *x, float *y, uint32_t *color) except *
 	ctypedef void (*Shader3Func)(float *x, float *y, float *z, uint32_t *color) except *
@@ -108,6 +110,7 @@ cdef extern from "libol.h":
 	void olSetVertex3Shader(Shader3Func f)
 
 	void olSetPixelShader(ShaderFunc f)
+	void olSetPixel3Shader(Shader3Func f)
 
 	void olRect(float x1, float y1, float x2, float y2, uint32_t color) except *
 	void olLine(float x1, float y1, float x2, float y2, uint32_t color) except *
@@ -317,6 +320,9 @@ cpdef begin(int prim): olBegin(prim)
 def vertex(coord, color):
 	x, y = coord
 	olVertex(x, y, color)
+def vertex2Z(coord, color):
+	x, y, z = coord
+	olVertex2Z(x, y, z, color)
 def vertex3(coord, color):
 	x, y, z = coord
 	olVertex3(x, y, z, color)
@@ -329,6 +335,10 @@ cpdef tuple transformVertex(float x, float y):
 cpdef tuple transformVertex3(float x, float y, float z):
 	olTransformVertex3(&x, &y, &z)
 	return x, y, z
+
+cpdef tuple transformVertex4(float x, float y, float z, float w):
+	olTransformVertex4(&x, &y, &z, &w)
+	return x, y, z, w
 
 _py_vpreshader = None
 cdef void _vpreshader(float *x, float *y, uint32_t *color) except * with gil:
@@ -353,6 +363,12 @@ cdef void _pshader(float *x, float *y, uint32_t *color) except * with gil:
 	global _py_pshader
 	if _py_pshader is not None:
 		(x[0], y[0]), color[0] = _py_pshader((x[0], y[0]), color[0])
+
+_py_p3shader = None
+cdef void _p3shader(float *x, float *y, float *z, uint32_t *color) except * with gil:
+	global _py_p3shader
+	if _py_p3shader is not None:
+		(x[0], y[0], z[0]), color[0] = _py_p3shader((x[0], y[0], z[0]), color[0])
 
 cpdef setVertexPreShader(object func):
 	global _py_vpreshader
@@ -385,6 +401,14 @@ cpdef setPixelShader(object func):
 		olSetPixelShader(_pshader)
 	else:
 		olSetPixelShader(NULL)
+
+cpdef setPixel3Shader(object func):
+	global _py_p3shader
+	_py_p3shader = func
+	if func is not None:
+		olSetPixel3Shader(_p3shader)
+	else:
+		olSetPixel3Shader(NULL)
 
 def rect(start, end, color):
 	x1, y1 = start

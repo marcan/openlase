@@ -39,8 +39,10 @@ static jack_port_t *out_ar;
 
 static jack_client_t *client;
 
+#define SMALL_Z 0.00001f
+
 typedef struct {
-	float x,y;
+	float x,y,z;
 	uint32_t color;
 } Point;
 
@@ -114,12 +116,13 @@ int coldp = 0;
 uint32_t cols[MTX_STACK_DEPTH];
 uint32_t curcol;
 
-#define POINT(x, y, color) ((Point){x,y,color})
+#define POINT(x, y, z, color) ((Point){x,y,z,color})
 
 ShaderFunc vpreshader;
 ShaderFunc vshader;
 Shader3Func v3shader;
 ShaderFunc pshader;
+Shader3Func p3shader;
 
 AudioCallbackFunc audiocb;
 
@@ -352,11 +355,12 @@ static int near(Point a, Point b)
 	return sqrtf(dx*dx+dy*dy) <= params.snap;
 }
 
-static void addpoint(float x, float y, uint32_t color)
+static void addpoint(float x, float y, float z, uint32_t color)
 {
 	Point *pnt = ps_alloc(1);
 	pnt->x = x;
 	pnt->y = y;
+	pnt->z = z;
 	pnt->color = color;
 	dstate.curobj->pointcnt++;
 }
@@ -397,29 +401,33 @@ static int get_dwell(float x, float y)
 	}
 }
 
-static void line_to(float x, float y, uint32_t color)
+static void line_to(float x, float y, float z, uint32_t color)
 {
 	int dwell, i;
-	//olLog("points: %d %d\n", dstate.points, dstate.curobj->pointcnt	);
+
 	if (dstate.points == 0) {
-		addpoint(x,y,color);
+		addpoint(x,y,z,color);
 		dstate.points++;
-		dstate.last_point = POINT(x,y,color);
+		dstate.last_point = POINT(x,y,z,color);
 		return;
 	}
 	dwell = get_dwell(x, y);
 	Point last = dstate.last_point;
 	for (i=0; i<dwell; i++)
-		addpoint(last.x,last.y,last.color);
+		addpoint(last.x,last.y,last.z,last.color);
 	float dx = x - last.x;
 	float dy = y - last.y;
+	float dz = z - last.z;
 	float distance = fmaxf(fabsf(dx),fabsf(dy));
 	int points = ceilf(distance/params.on_speed);
 	for (i=1; i<=points; i++) {
-		addpoint(last.x + (dx/(float)points) * i, last.y + (dy/(float)points) * i, color);
+		addpoint(last.x + (dx/(float)points) * i,
+				 last.y + (dy/(float)points) * i,
+				 last.z + (dz/(float)points) * i,
+				 color);
 	}
 	dstate.last_slope = dstate.last_point;
-	dstate.last_point = POINT(x,y,color);
+	dstate.last_point = POINT(x,y,z,color);
 	dstate.points++;
 }
 
@@ -469,8 +477,8 @@ static void recurse_bezier(float x1, float y1, float x2, float y2, float x3, flo
 		recurse_bezier(ax1, ay1, ax2, ay2, xm, ym, color, depth+1);
 		recurse_bezier(bx1, by1, bx2, by2, x3, y3, color, depth+1);
 	} else {
-		addpoint(x3, y3, color);
-		dstate.last_point = POINT(x3,y3,color);
+		addpoint(x3, y3, 0, color);
+		dstate.last_point = POINT(x3,y3,0,color);
 	}
 }
 
@@ -479,19 +487,19 @@ static void bezier_to(float x, float y, uint32_t color)
 	int dwell, i;
 
 	if (dstate.points == 0) {
-		addpoint(x,y,color);
+		addpoint(x,y,0,color);
 		dstate.points++;
-		dstate.last_point = POINT(x,y,color);
+		dstate.last_point = POINT(x,y,0,color);
 		return;
 	}
 
 	switch(dstate.state) {
 		case 0:
-			dstate.c1 = POINT(x,y,color);
+			dstate.c1 = POINT(x,y,0,color);
 			dstate.state++;
 			return;
 		case 1:
-			dstate.c2 = POINT(x,y,color);
+			dstate.c2 = POINT(x,y,0,color);
 			dstate.state++;
 			return;
 		case 2:
@@ -505,11 +513,11 @@ static void bezier_to(float x, float y, uint32_t color)
 
 	Point last = dstate.last_point;
 	for (i=0; i<dwell; i++)
-		addpoint(last.x,last.y,last.color);
+		addpoint(last.x,last.y,last.z,last.color);
 
 	recurse_bezier(dstate.c1.x, dstate.c1.y, dstate.c2.x, dstate.c2.y, x, y, color, 0);
 
-	dstate.last_point = POINT(x,y,color);
+	dstate.last_point = POINT(x,y,0,color);
 	if (near(dstate.c2, dstate.last_point))
 		dstate.last_slope = dstate.c1;
 	else
@@ -519,13 +527,13 @@ static void bezier_to(float x, float y, uint32_t color)
 }
 
 
-static void point_to(float x, float y, uint32_t color)
+static void point_to(float x, float y, float z, uint32_t color)
 {
 	int i;
-	addpoint(x,y,color);
+	addpoint(x,y,z,color);
 	if (dstate.points == 0)
 		for (i=0; i<params.start_dwell; i++)
-			addpoint(x,y,color);
+			addpoint(x,y,z,color);
 
 	dstate.points++;
 	return;
@@ -541,7 +549,7 @@ void olTransformVertex(float *x, float *y)
 	*y = ny / nw;
 }
 
-void olVertex(float x, float y, uint32_t color)
+void olVertex2Z(float x, float y, float z, uint32_t color)
 {
 	if (!dstate.curobj)
 		return;
@@ -558,15 +566,20 @@ void olVertex(float x, float y, uint32_t color)
 
 	switch (dstate.prim) {
 		case OL_LINESTRIP:
-			line_to(x,y,color);
+			line_to(x,y,z,color);
 			break;
 		case OL_BEZIERSTRIP:
 			bezier_to(x,y,color);
 			break;
 		case OL_POINTS:
-			point_to(x,y,color);
+			point_to(x,y,z,color);
 			break;
 	}
+}
+
+void olVertex(float x, float y, uint32_t color)
+{
+	olVertex2Z(x, y, 0, color);
 }
 
 void olEnd(void)
@@ -580,11 +593,20 @@ void olEnd(void)
 	}
 	Point *last = dstate.curobj->points + dstate.curobj->pointcnt - 1;
 	for (i=0; i<params.end_dwell; i++)
-		addpoint(last->x,last->y,last->color);
+		addpoint(last->x,last->y,last->z,last->color);
 
-	if(pshader) {
+	if (pshader) {
 		for (i=0; i<dstate.curobj->pointcnt; i++) {
 			pshader(&dstate.curobj->points[i].x, &dstate.curobj->points[i].y, &dstate.curobj->points[i].color);
+		}
+	}
+
+	if (p3shader) {
+		for (i=0; i<dstate.curobj->pointcnt; i++) {
+			p3shader(&dstate.curobj->points[i].x,
+					&dstate.curobj->points[i].y,
+					&dstate.curobj->points[i].z,
+					&dstate.curobj->points[i].color);
 		}
 	}
 
@@ -649,6 +671,8 @@ static int render_object(Object *obj)
 		int inside = 1;
 		if (ip->x < obj->bbox[0][0] || ip->x > obj->bbox[1][0] ||
 			ip->y < obj->bbox[0][1] || ip->y > obj->bbox[1][1])
+			inside = 0;
+		if (ip->color == 0 && (params.render_flags & RENDER_CULLDARK))
 			inside = 0;
 		if (inside && !prev_inside) {
 			float dx = ip->x - last_render_point.x;
@@ -995,25 +1019,33 @@ void olPopMatrix3(void)
 	memcpy(&mtx3d[0][0], &mtx3ds[mtx3dp][0][0], sizeof(mtx3d));
 }
 
-void olTransformVertex3(float *x, float *y, float *z)
+void olTransformVertex4(float *x, float *y, float *z, float *w)
 {
 	float px;
 	float py;
 	float pz;
 	float pw;
 
-	px = mtx3d[0][0]**x + mtx3d[0][1]**y + mtx3d[0][2]**z + mtx3d[0][3];
-	py = mtx3d[1][0]**x + mtx3d[1][1]**y + mtx3d[1][2]**z + mtx3d[1][3];
-	pz = mtx3d[2][0]**x + mtx3d[2][1]**y + mtx3d[2][2]**z + mtx3d[2][3];
-	pw = mtx3d[3][0]**x + mtx3d[3][1]**y + mtx3d[3][2]**z + mtx3d[3][3];
-
-	px /= pw;
-	py /= pw;
-	pz /= pw;
+	px = mtx3d[0][0]**x + mtx3d[0][1]**y + mtx3d[0][2]**z + mtx3d[0][3]**w;
+	py = mtx3d[1][0]**x + mtx3d[1][1]**y + mtx3d[1][2]**z + mtx3d[1][3]**w;
+	pz = mtx3d[2][0]**x + mtx3d[2][1]**y + mtx3d[2][2]**z + mtx3d[2][3]**w;
+	pw = mtx3d[3][0]**x + mtx3d[3][1]**y + mtx3d[3][2]**z + mtx3d[3][3]**w;
 
 	*x = px;
 	*y = py;
 	*z = pz;
+	*w = pw;
+}
+
+void olTransformVertex3(float *x, float *y, float *z)
+{
+	float w = 1.0;
+
+	olTransformVertex4(x, y, z, &w);
+
+	*x /= w;
+	*y /= w;
+	*z /= w;
 }
 
 void olVertex3(float x, float y, float z, uint32_t color)
@@ -1021,7 +1053,9 @@ void olVertex3(float x, float y, float z, uint32_t color)
 	if(v3shader)
 		v3shader(&x, &y, &z, &color);
 	olTransformVertex3(&x, &y, &z);
-	olVertex(x, y, color);
+	if (z == 0)
+		z = SMALL_Z; // Hack for code not clipping z
+	olVertex2Z(x, y, 1.0 / z, color);
 }
 
 void olRect(float x1, float y1, float x2, float y2, uint32_t color)
@@ -1092,6 +1126,10 @@ void olSetVertex3Shader(Shader3Func f)
 void olSetPixelShader(ShaderFunc f)
 {
 	pshader = f;
+}
+void olSetPixel3Shader(Shader3Func f)
+{
+	p3shader = f;
 }
 
 void olSetAudioCallback(AudioCallbackFunc f)

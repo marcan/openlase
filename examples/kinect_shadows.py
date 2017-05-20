@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #         OpenLase - a realtime laser graphics toolkit
 #
@@ -38,7 +39,7 @@ class LaserThread(threading.Thread):
 
 		if ol.init(3) < 0:
 			return
-		print "OL Initialized"
+		print("OL Initialized")
 		params = ol.RenderParams()
 		params.render_flags = ol.RENDER_GRAYSCALE
 		params.on_speed = 2/120.0
@@ -66,9 +67,9 @@ class LaserThread(threading.Thread):
 		ol.shutdown()
 
 olt = LaserThread()
-print "Starting thread"
+print("Starting thread")
 olt.start()
-print "Thread running"
+print("Thread running")
 
 try:
 	tracer = ol.Tracer(640, 480)
@@ -79,7 +80,7 @@ try:
 
 	try:
 		floor = np.load("floor.npy")
-		print "floor loaded"
+		print("floor loaded")
 	except:
 		floor = None
 

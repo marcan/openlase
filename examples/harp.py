@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #         OpenLase - a realtime laser graphics toolkit
 #
 # Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
@@ -106,9 +107,9 @@ while True:
 			if j != k:
 				note(NOTE_OFFSET+len(oldstate)-i, k)
 				if k:
-					print "PRESSED: %d"%i
+					print("PRESSED: %d"%i)
 				else:
-					print "RELEASED: %d"%i
+					print("RELEASED: %d"%i)
 	oldstate = state
 
 	cv.ShowImage("thresholded", grey2)

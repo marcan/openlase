@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #         OpenLase - a realtime laser graphics toolkit
 #
 # Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
@@ -99,7 +100,7 @@ def near(p1, p2, d):
 oldstate = None
 
 olt = LaserThread()
-print "Starting thread"
+print("Starting thread")
 
 v_off = -0.1
 
@@ -126,7 +127,7 @@ for n in range(n_start, n_end+1):
 	x = 2 * (gxpos(n + n_off) - xstart) / float(xend - xstart)
 	x -= 1.0
 	x *= 0.98
-	print -x,off
+	print(-x,off)
 	dots.append((-x, off))
 
 olt.dots = dots
@@ -147,7 +148,7 @@ grey2 = cv.CreateImage(cv.GetSize(image), cv.IPL_DEPTH_8U, 1)
 
 
 olt.start()
-print "Thread running"
+print("Thread running")
 time.sleep(1)
 
 try:
@@ -156,13 +157,13 @@ try:
 	refpoints = getpoints(image)
 	refpoints.sort(key=lambda x: x[0])
 
-	print len(refpoints), n_end - n_start + 1
+	print(len(refpoints), n_end - n_start + 1)
 
 	frameno=1
 	start=time.time()
 	while True:
 		image = cv.QueryFrame(camera)
-		print frameno, frameno/(time.time()-start)
+		print(frameno, frameno/(time.time()-start))
 		frameno += 1
 		cpoints = getpoints(image)
 		state = [False]*len(refpoints)
@@ -178,9 +179,9 @@ try:
 				if j != k:
 					note(n_start+len(oldstate)-i, k)
 					if k:
-						print "PRESSED: %d"%i
+						print("PRESSED: %d"%i)
 					else:
-						print "RELEASED: %d"%i
+						print("RELEASED: %d"%i)
 		oldstate = state
 
 		cv.ShowImage("thresholded", grey2)

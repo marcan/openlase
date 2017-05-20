@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import os, sys, math
@@ -29,7 +29,7 @@ class PathLine(object):
 	def ecp(self):
 		return self.start
 	def showinfo(self, tr=''):
-		print tr+'Line( %s %s )'%(pc(self.start),pc(self.end))
+		print(tr+'Line( %s %s )'%(pc(self.start),pc(self.end)))
 
 class PathBezier4(object):
 	def __init__(self, start, cp1, cp2, end):
@@ -62,7 +62,7 @@ class PathBezier4(object):
 		else:
 			return self.start
 	def showinfo(self, tr=''):
-		print tr+'Bezier( %s %s %s %s )'%(pc(self.start),pc(self.cp1),pc(self.cp2),pc(self.end))
+		print(tr+'Bezier( %s %s %s %s )'%(pc(self.start),pc(self.cp1),pc(self.cp2),pc(self.end)))
 
 class PathBezier3(PathBezier4):
 	def __init__(self, start, cp, end):
@@ -93,7 +93,7 @@ class LaserPath(object):
 		lp.segments = [x.reverse() for x in self.segments[::-1]]
 		return lp
 	def showinfo(self, tr=''):
-		print tr+'LaserPath:'
+		print(tr+'LaserPath:')
 		for i in self.segments:
 			i.showinfo(tr+' ')
 
@@ -106,7 +106,7 @@ class LaserFrame(object):
 		for i in self.objects:
 			i.transform(func)
 	def showinfo(self, tr=''):
-		print tr+'LaserFrame:'
+		print(tr+'LaserFrame:')
 		for i in self.objects:
 			i.showinfo(tr+' ')
 
@@ -236,7 +236,7 @@ class SVGPath(object):
 
 class SVGReader(xml.sax.handler.ContentHandler):
 	def doctype(self, name, pubid, system):
-		print name,pubid,system
+		print(name,pubid,system)
 	def startDocument(self):
 		self.frame = LaserFrame()
 		self.rects = []
@@ -248,15 +248,15 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			self.width = float(attrs['width'].replace("px",""))
 			self.height = float(attrs['height'].replace("px",""))
 		elif name == "path":
-			if 'transform' in attrs.keys():
+			if 'transform' in list(attrs.keys()):
 				self.transform(attrs['transform'])
 			self.addPath(attrs['d'])
-			if 'transform' in attrs.keys():
+			if 'transform' in list(attrs.keys()):
 				self.popmatrix()
 		elif name == "rect":
 			self.rects.append((attrs['id'],float(attrs['x']),float(attrs['y']),float(attrs['width']),float(attrs['height'])))
 		elif name == 'g':
-			if 'transform' in attrs.keys():
+			if 'transform' in list(attrs.keys()):
 				self.transform(attrs['transform'])
 			else:
 				self.pushmatrix((1,0,0,1,0,0))
@@ -306,7 +306,7 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			name,rest = t.split("(")
 			if rest[-1] != ")":
 				raise ValueError("Invalid SVG transform expression: %r"%data)
-			args = map(float,rest[:-1].split(","))
+			args = list(map(float,rest[:-1].split(",")))
 			if name == 'matrix':
 				mat = self.mmul(mat, args)
 			elif name == 'translate':

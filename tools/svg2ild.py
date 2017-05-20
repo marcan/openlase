@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 import os, sys, math
@@ -117,7 +117,7 @@ class PathLine(object):
 	def ecp(self):
 		return self.start
 	def showinfo(self, tr=''):
-		print tr+'Line( %s %s )'%(pc(self.start),pc(self.end))
+		print(tr+'Line( %s %s )'%(pc(self.start),pc(self.end)))
 
 class PathBezier3(object):
 	def __init__(self, start, cp, end):
@@ -148,7 +148,7 @@ class PathBezier3(object):
 	def ecp(self):
 		return self.cp
 	def showinfo(self, tr=''):
-		print tr+'Bezier( %s %s %s )'%(pc(self.start),pc(self.cp),pc(self.end))
+		print(tr+'Bezier( %s %s %s )'%(pc(self.start),pc(self.cp),pc(self.end)))
 
 class PathBezier4(object):
 	def __init__(self, start, cp1, cp2, end):
@@ -225,7 +225,7 @@ class PathBezier4(object):
 		else:
 			return self.start
 	def showinfo(self, tr=''):
-		print tr+'Bezier( %s %s %s %s )'%(pc(self.start),pc(self.cp1),pc(self.cp2),pc(self.end))
+		print(tr+'Bezier( %s %s %s %s )'%(pc(self.start),pc(self.cp1),pc(self.cp2),pc(self.end)))
 
 class LaserPath(object):
 	def __init__(self):
@@ -289,7 +289,7 @@ class LaserPath(object):
 		lp.segments = [x.reverse() for x in self.segments[::-1]]
 		return lp
 	def showinfo(self, tr=''):
-		print tr+'LaserPath:'
+		print(tr+'LaserPath:')
 		for i in self.segments:
 			i.showinfo(tr+' ')
 
@@ -346,7 +346,7 @@ class LaserFrame(object):
 			cx,cy = obj.endpos()
 		self.objects = oobj
 	def showinfo(self, tr=''):
-		print tr+'LaserFrame:'
+		print(tr+'LaserFrame:')
 		for i in self.objects:
 			i.showinfo(tr+' ')
 
@@ -603,7 +603,7 @@ class SVGPolyline(SVGPath):
 
 class SVGReader(xml.sax.handler.ContentHandler):
 	def doctype(self, name, pubid, system):
-		print name,pubid,system
+		print(name,pubid,system)
 	def startDocument(self):
 		self.frame = LaserFrame()
 		self.matrix_stack = [(1,0,0,1,0,0)]
@@ -734,7 +734,7 @@ class SVGReader(xml.sax.handler.ContentHandler):
 			name,rest = t.split("(")
 			if rest[-1] != ")":
 				raise ValueError("Invalid SVG transform expression: %r (%r)"%(data,rest))
-			args = map(float,re.split(r'[, \t]+',rest[:-1]))
+			args = list(map(float,re.split(r'[, \t]+',rest[:-1])))
 			if name == 'matrix':
 				mat = self.mmul(mat, args)
 			elif name == 'translate':
@@ -867,14 +867,14 @@ def write_ild(params, rframe, path, center=True):
 	if width > 65534 or height > 65534:
 		smax = max(width, height)
 		scale = 65534.0/smax
-		print "Scaling to %.02f%% due to overflow"%(scale*100)
+		print("Scaling to %.02f%% due to overflow"%(scale*100))
 
 	if len(rframe) >= 65535:
 		raise ValueError("Too many points (%d, max 65535)"%len(rframe))
 
 	fout = open(path, "wb")
 
-	dout = struct.pack(">4s3xB8s8sHHHBx", "ILDA", 1, "svg2ilda", "", len(rframe), 1, 1, 0)
+	dout = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", len(rframe), 1, 1, 0)
 	for i,sample in enumerate(rframe):
 		x,y = sample.coord
 		x += offx
@@ -930,39 +930,39 @@ if __name__ == "__main__":
 		sys.argv = [sys.argv[0]] + sys.argv[3:]
 
 	if verbose:
-		print "Parse"
+		print("Parse")
 	frame = load_svg(sys.argv[1])
 	if verbose:
-		print "Done"
+		print("Done")
 
 	if optimize:
 		frame.sort()
 
 	if verbose:
-		print "Render"
+		print("Render")
 	rframe = frame.render(params)
 	if verbose:
-		print "Done"
+		print("Done")
 
 	write_ild(params, rframe, sys.argv[2], center)
 
 	if verbose:
-		print "Statistics:"
-		print " Objects: %d"%params.objects
-		print " Subpaths: %d"%params.subpaths
-		print " Bezier subdivisions:"
-		print "  Due to rate: %d"%params.rate_divs
-		print "  Due to flatness: %d"%params.flatness_divs
-		print " Points: %d"%params.points
-		print "  Trip: %d"%params.points_trip
-		print "  Line: %d"%params.points_line
-		print "  Bezier: %d"%params.points_bezier
-		print "  Start dwell: %d"%params.points_dwell_start
-		print "  Curve dwell: %d"%params.points_dwell_curve
-		print "  Corner dwell: %d"%params.points_dwell_corner
-		print "  End dwell: %d"%params.points_dwell_end
-		print "  Switch dwell: %d"%params.points_dwell_switch
-		print " Total on: %d"%params.points_on
-		print " Total off: %d"%(params.points - params.points_on)
-		print " Efficiency: %.3f"%(params.points_on/float(params.points))
-		print " Framerate: %.3f"%(params.rate/float(params.points))
+		print("Statistics:")
+		print(" Objects: %d"%params.objects)
+		print(" Subpaths: %d"%params.subpaths)
+		print(" Bezier subdivisions:")
+		print("  Due to rate: %d"%params.rate_divs)
+		print("  Due to flatness: %d"%params.flatness_divs)
+		print(" Points: %d"%params.points)
+		print("  Trip: %d"%params.points_trip)
+		print("  Line: %d"%params.points_line)
+		print("  Bezier: %d"%params.points_bezier)
+		print("  Start dwell: %d"%params.points_dwell_start)
+		print("  Curve dwell: %d"%params.points_dwell_curve)
+		print("  Corner dwell: %d"%params.points_dwell_corner)
+		print("  End dwell: %d"%params.points_dwell_end)
+		print("  Switch dwell: %d"%params.points_dwell_switch)
+		print(" Total on: %d"%params.points_on)
+		print(" Total off: %d"%(params.points - params.points_on))
+		print(" Efficiency: %.3f"%(params.points_on/float(params.points)))
+		print(" Framerate: %.3f"%(params.rate/float(params.points)))

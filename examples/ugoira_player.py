@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #         OpenLase - a realtime laser graphics toolkit
 #
@@ -16,32 +17,32 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys, os, json, cookielib, urllib, urllib2, zipfile, cStringIO
+import sys, os, json, http.cookiejar, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, zipfile, io
 import pylase as ol
 from PIL import Image
 
 def fetch_ugo(illust_id):
-    cj = cookielib.CookieJar()
+    cj = http.cookiejar.CookieJar()
     try:
-        print 'Logging in...'
+        print('Logging in...')
         user, password = open(os.environ['HOME'] + '/.pixiv_credentials').read().strip().split(':', 1)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
         fd = opener.open('https://www.secure.pixiv.net/login.php')
         fd.read()
         fd.close()
-        data = urllib.urlencode({
+        data = urllib.parse.urlencode({
             'mode': 'login',
             'pixiv_id': user,
             'pass': password,
             'skip': '1'
         })
-        post = urllib2.Request('https://www.secure.pixiv.net/login.php', data)
+        post = urllib.request.Request('https://www.secure.pixiv.net/login.php', data)
         fd = opener.open(post)
         fd.read()
         fd.close()
     except:
-        print 'Login failed or credentials not available, using logged-out mode'
-    print 'Fetching ugoira...'
+        print('Login failed or credentials not available, using logged-out mode')
+    print('Fetching ugoira...')
     url = 'http://www.pixiv.net/member_illust.php?mode=medium&illust_id=%d' % illust_id
     meta = None
     fd = opener.open(url)
@@ -52,17 +53,17 @@ def fetch_ugo(illust_id):
             break
     fd.close()
     if meta is None:
-        print 'Not ugoira or fetch failed!'
+        print('Not ugoira or fetch failed!')
         sys.exit(1)
     src_url = meta['src']
-    get = urllib2.Request(src_url, None, {'Referer': url})
+    get = urllib.request.Request(src_url, None, {'Referer': url})
     fd = opener.open(get)
     zip_data = fd.read()
     fd.close()
     return meta, zip_data
 
 def trace_ugo(meta, zip_data):
-    zipfd = cStringIO.StringIO(zip_data)
+    zipfd = io.StringIO(zip_data)
     zf = zipfile.ZipFile(zipfd, 'r')
 
     tracer = None
@@ -70,7 +71,7 @@ def trace_ugo(meta, zip_data):
 
     for frame_meta in meta['frames']:
         file_data = zf.open(frame_meta['file']).read()
-        fd = cStringIO.StringIO(file_data)
+        fd = io.StringIO(file_data)
         im = Image.open(fd)
         im = im.convert('I')
         if tracer is None:
@@ -112,7 +113,7 @@ def play_ugo(size, frames, meta):
     ol.scale((2, -2))
     ol.translate((-0.5, -0.5))
     mw = float(max(width, height))
-    print width, height, mw
+    print(width, height, mw)
     ol.scale((1/mw, 1/mw))
     ol.translate(((mw-width)/2, (mw-height)/2))
 
@@ -129,7 +130,7 @@ def play_ugo(size, frames, meta):
         while (frame+1) < len(frames) and frame_pts[frame+1] < time:
             frame += 1
 
-        print "t=%.02f frame=%d" % (time, frame)
+        print("t=%.02f frame=%d" % (time, frame))
 
         objects = frames[frame]
         points = 0
@@ -139,7 +140,7 @@ def play_ugo(size, frames, meta):
                 ol.vertex(point, ol.C_WHITE)
                 points += 1
             ol.end()
-        print "%d objects, %d points" % (len(objects), points)
+        print("%d objects, %d points" % (len(objects), points))
         time += ol.renderFrame(60)
 
     ol.shutdown()
@@ -147,8 +148,8 @@ def play_ugo(size, frames, meta):
 
 if __name__ == '__main__':
     meta, zip_data = fetch_ugo(int(sys.argv[1]))
-    print 'Converting ugoira...'
+    print('Converting ugoira...')
     size, frames = trace_ugo(meta, zip_data)
-    print 'Playing...'
+    print('Playing...')
     play_ugo(size, frames, meta)
 

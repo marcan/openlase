@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #         OpenLase - a realtime laser graphics toolkit
 #

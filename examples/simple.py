@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #         OpenLase - a realtime laser graphics toolkit
 #
 # Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
@@ -72,6 +73,6 @@ while True:
 	ftime = ol.renderFrame(60)
 	frames += 1
 	time += ftime
-	print "Frame time: %f, FPS:%f"%(ftime, frames/time)
+	print("Frame time: %f, FPS:%f"%(ftime, frames/time))
 
 ol.shutdown()

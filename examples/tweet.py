@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #         OpenLase - a realtime laser graphics toolkit
 #
@@ -90,27 +91,27 @@ class LaserThread(threading.Thread):
 				if self.tweets != cur_tweets:
 					idx = 0
 					cur_tweets = self.tweets
-					print "Reset and update"
-				print "Finished, new idx: %d"%idx
+					print("Reset and update")
+				print("Finished, new idx: %d"%idx)
 			frames += 1
 			time += ftime
 		ol.shutdown()
 
 cmap = {
-	u'Á': 'A',
-	u'É': 'E',
-	u'Í': 'I',
-	u'Ó': 'O',
-	u'Ú': 'U',
-	u'Ü': 'U',
+	'Á': 'A',
+	'É': 'E',
+	'Í': 'I',
+	'Ó': 'O',
+	'Ú': 'U',
+	'Ü': 'U',
 }
 
 search = sys.argv[1]
 
 olt = LaserThread()
-print "Starting thread"
+print("Starting thread")
 olt.start()
-print "Thread running"
+print("Thread running")
 
 try:
 	api = twitter.Twitter(domain="search.twitter.com")
@@ -121,33 +122,33 @@ try:
 	while True:
 		try:
 			s = api.search(q="#EE20")["results"]
-		except Exception, e:
+		except Exception as e:
 			olt.tweets = ["Twitter Error: NO FUNCIONA INTERNEEEEE!!!"]
 			time.sleep(1)
 			since_id = -1
 			tweets = []
-			print e, "Fetch error"
+			print(e, "Fetch error")
 			continue
 
 		if len(s) == 0:
 			time.sleep(10)
 			continue
-		print "Fetched %d tweets"%len(s)
+		print("Fetched %d tweets"%len(s))
 		since_id = s[0]["id"]
 		tweets = s + tweets
 		tweets = tweets[:10]
 		strings = []
-		print "New tweetset:"
+		print("New tweetset:")
 		for t in tweets:
-			itext = u"@%s: %s"%(t["from_user_name"], t["text"])
+			itext = "@%s: %s"%(t["from_user_name"], t["text"])
 			itext = itext.replace("&gt;", ">").replace("&lt;", "<").replace("&quot;", '"').replace("\n", " ")
-			text = u""
+			text = ""
 			for c in itext:
 				if c in cmap:
 					c = cmap[c]
 				text += c
 			strings.append(text.encode('iso-8859-1', 'replace'))
-			print "-->", itext
+			print("-->", itext)
 		olt.tweets = strings
 		time.sleep(10)
 except:

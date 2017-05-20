@@ -18,7 +18,7 @@
 
 project(openlase)
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8.9)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
 
@@ -30,8 +30,8 @@ endif()
 
 find_package(Threads REQUIRED)
 find_package(JACK REQUIRED)
-find_package(PythonInterp REQUIRED)
-find_package(Qt4)
+find_package(PythonInterp 3 REQUIRED)
+find_package(Qt5Widgets)
 find_package(FFmpeg)
 find_package(Swscale)
 find_package(OpenGL)

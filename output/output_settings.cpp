@@ -52,8 +52,8 @@ OutputSettings::OutputSettings(QWidget *parent)
 {
 	setupUi(this);
 
-	QPen grid_pen(Qt::blue);
-	QPen line_pen(Qt::green);
+	QPen grid_pen(Qt::blue, 0);
+	QPen line_pen(Qt::green, 0);
 	QBrush point_brush(Qt::red);
 
 	scene.setSceneRect(-1.1,-1.1,2.2,2.2);

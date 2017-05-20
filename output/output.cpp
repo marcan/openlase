@@ -51,7 +51,7 @@ jack_port_t *out_e;
 nframes_t rate, enable_period, enable_ctr;
 nframes_t frames_dead;
 
-#define DEAD_TIME (rate/10)
+#define DEAD_TIME (rate/40)
 
 nframes_t ibuf_r = 0;
 nframes_t ibuf_g = 0;

@@ -15,6 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#cython: language_level=3
+
 include "config.pxi"
 
 from libc.stdint cimport *
@@ -488,12 +490,18 @@ cpdef getDefaultFont():
 	f.font = olGetDefaultFont()
 	return f
 
+def _cstr(s):
+	if isinstance(s, bytes):
+		return s
+	else:
+		return s.encode("iso-8859-1") # TODO: support unicode properly
+
 cpdef float getCharWidth(object font, int c):
 	cdef Font fnt = font
 	return olGetCharWidth(fnt.font, c)
-cpdef float getStringWidth(object font, float height, char *s):
+cpdef float getStringWidth(object font, float height, object s):
 	cdef Font fnt = font
-	return olGetStringWidth(fnt.font, height, s)
+	return olGetStringWidth(fnt.font, height, _cstr(s))
 cpdef float getCharOverlap(object font, float height):
 	cdef Font fnt = font
 	return olGetCharOverlap(fnt.font, height)
@@ -501,10 +509,10 @@ cpdef float drawChar(object font, tuple coord, float height, uint32_t color, int
 	cdef Font fnt = font
 	x, y = coord
 	return olDrawChar(fnt.font, x, y, height, color, c)
-cpdef float drawString(object font, tuple coord, float height, uint32_t color, char *s):
+cpdef float drawString(object font, tuple coord, float height, uint32_t color, object s):
 	cdef Font fnt = font
 	x, y = coord
-	return olDrawString(fnt.font, x, y, height, color, s)
+	return olDrawString(fnt.font, x, y, height, color, _cstr(s))
 
 cdef extern from "ilda.h":
 	ctypedef struct _IldaFile "IldaFile"

@@ -874,7 +874,7 @@ def write_ild(params, rframe, path, center=True):
 
 	fout = open(path, "wb")
 
-	dout = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", len(rframe), 1, 1, 0)
+	dout = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", len(rframe), 0, 1, 0)
 	for i,sample in enumerate(rframe):
 		x,y = sample.coord
 		x += offx

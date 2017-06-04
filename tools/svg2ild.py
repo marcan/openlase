@@ -874,7 +874,9 @@ def write_ild(params, rframe, path, center=True):
 
 	fout = open(path, "wb")
 
-	dout = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", len(rframe), 0, 1, 0)
+	samples = len(rframe)
+
+	dout = b""
 	for i,sample in enumerate(rframe):
 		x,y = sample.coord
 		x += offx
@@ -896,15 +898,20 @@ def write_ild(params, rframe, path, center=True):
 			raise ValueError("X out of bounds: %d"%x)
 		if abs(y) > 32767:
 			raise ValueError("Y out of bounds: %d"%y)
-		dout += struct.pack(">hhBB",x,-y,mode,0x01)
+		dout += struct.pack(">hhBB",x,-y,mode,0x01 if sample.on else 0x00)
 
-	frame_time = len(rframe) / float(params.rate)
+	frame_time = samples / float(params.rate)
 
+	frames = 1
 	if (frame_time*2) < params.time:
-		count = int(params.time / frame_time)
-		dout = dout * count
+		frames = int(params.time / frame_time)
 
-	fout.write(dout)
+	for i in xrange(frames):
+		hdr = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", samples, i, frames, 0)
+		fout.write(hdr)
+		fout.write(dout)
+	hdr = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 0, b"svg2ilda", b"", 0, 0, frames, 0)
+	fout.write(hdr)
 	fout.close()
 
 if __name__ == "__main__":

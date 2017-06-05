@@ -273,9 +273,10 @@ class LaserPath(object):
 						out += end_render * params.corner_dwell
 						params.points_dwell_corner += params.corner_dwell
 			elif is_closed:
-				out += end_render * params.closed_end_dwell
 				overdraw = out[:params.closed_overdraw]
 				out += overdraw
+				out += [out[-1]] * params.closed_end_dwell
+				params.points_dwell_end += params.closed_end_dwell
 			else:
 				out += end_render * params.end_dwell
 				params.points_dwell_end += params.end_dwell
@@ -305,18 +306,18 @@ class LaserFrame(object):
 		if not self.objects:
 			return []
 		out = []
-		cpos = self.objects[-1].endpos()
-		for i in self.objects:
+		for n,i in enumerate(self.objects):
+			params.objects += 1
+			out += i.render(params)
+			cpos = out[-1].coord[0] / params.width, out[-1].coord[1] / params.height
+			npos = self.objects[(n+1) % len(self.objects)].startpos()
 			trip = [LaserSample((int(cpos[0]*params.width),int(cpos[1]*params.height)))] * params.switch_on_dwell
-			trip += PathLine(cpos,i.startpos(),False).render(params)
-			trip += [LaserSample((int(i.startpos()[0]*params.width),int(i.startpos()[1]*params.height)))] * params.switch_off_dwell
+			trip += PathLine(cpos,npos,False).render(params)
+			trip += [LaserSample((int(npos[0]*params.width),int(npos[1]*params.height)))] * params.switch_off_dwell
 			params.points_dwell_switch += params.switch_on_dwell + params.switch_off_dwell
 			for s in trip:
 				s.on = False
 			out += trip
-			out += i.render(params)
-			cpos = i.endpos()
-			params.objects += 1
 		params.points = len(out)
 		params.points_on = sum([int(s.on) for s in out])
 		return out
@@ -515,9 +516,11 @@ class SVGPath(object):
 				cur = curcpc = curcpq = sp_start
 				in_path = True
 			elif ucmd == 'Z':
-				if sp_start != cur:
+				print(sp_start, cur)
+				if (sp_start[0] - cur[0]) > 0.0000001 or (sp_start[1] - cur[1]) > 0.0000001:
 					subpath.add(PathLine(cur, sp_start))
 				cur = curcpc = curcpq = sp_start
+				subpath.segments[-1].end = subpath.segments[0].start
 				in_path = False
 			elif ucmd == 'L':
 				end = self.popcoord(rel, cur)

@@ -906,7 +906,7 @@ def write_ild(params, rframe, path, center=True):
 	if (frame_time*2) < params.time:
 		frames = int(params.time / frame_time)
 
-	for i in xrange(frames):
+	for i in range(frames):
 		hdr = struct.pack(">4s3xB8s8sHHHBx", b"ILDA", 1, b"svg2ilda", b"", samples, i, frames, 0)
 		fout.write(hdr)
 		fout.write(dout)

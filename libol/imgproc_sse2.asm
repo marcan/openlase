@@ -71,7 +71,7 @@ INIT_XMM
 %endmacro
 
 %macro TRANSPOSE2x8x8B 9-11
-%ifdef ARCH_X86_64
+%if ARCH_X86_64
     SBUTTERFLY bw,  %1, %2, %9
     SBUTTERFLY bw,  %3, %4, %9
     SBUTTERFLY bw,  %5, %6, %9
@@ -130,7 +130,7 @@ INIT_XMM
 %endmacro
 
 %macro TRANSPOSE8x8W 9-11
-%ifdef ARCH_X86_64
+%if ARCH_X86_64
     SBUTTERFLY wd,  %1, %2, %9
     SBUTTERFLY wd,  %3, %4, %9
     SBUTTERFLY wd,  %5, %6, %9
@@ -356,7 +356,7 @@ SOBEL gy, h, 0, 2
 ;*****************************************************************************
 
 cglobal transpose_2x8x8, 2,5,9
-%ifdef ARCH_X86_64
+%if ARCH_X86_64
     %define t0 8
     %define t1 9
 %else
@@ -388,7 +388,7 @@ cglobal transpose_2x8x8, 2,5,9
     mova    [r0+2*r3], m6
     mova    [r2+2*r3], m7
 
-%ifndef ARCH_X86_64
+%if ARCH_X86_64 == 0
     mov     esp, r4
 %endif
     RET
@@ -403,7 +403,7 @@ cglobal transpose_2x8x8, 2,5,9
 ;*****************************************************************************
 
 cglobal transpose_8x8w, 2,5,9
-%ifdef ARCH_X86_64
+%if ARCH_X86_64
     %define t0 8
     %define t1 9
 %else
@@ -435,7 +435,7 @@ cglobal transpose_8x8w, 2,5,9
     mova    [r0+2*r3], m6
     mova    [r2+2*r3], m7
 
-%ifndef ARCH_X86_64
+%if ARCH_X86_64 == 0
     mov     esp, r4
 %endif
     RET

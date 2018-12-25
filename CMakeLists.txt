@@ -21,6 +21,7 @@ project(openlase)
 cmake_minimum_required(VERSION 2.8.9)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(BITS 64)

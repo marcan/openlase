@@ -24,6 +24,8 @@ if(Qt5Widgets_FOUND)
 
   add_executable(output output.cpp output_settings.cpp ${output_UIS_H} ${output_MOCS})
   target_link_libraries(output ${JACK_LIBRARIES} Qt5::Widgets)
+  install(TARGETS output RUNTIME DESTINATION bin)
+  set_target_properties(output PROPERTIES OUTPUT_NAME "ol-output")
 else()
   message(STATUS "Will NOT build output (Qt4 missing)")
 endif()

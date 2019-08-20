@@ -28,8 +28,10 @@ target_link_libraries(scope ${JACK_LIBRARIES} m)
 add_executable(simple simple.c)
 target_link_libraries(simple ol)
 
+if(UNIX AND NOT APPLE)
 add_executable(pong pong.c)
 target_link_libraries(pong ol)
+endif()
 
 if(ALSA_FOUND)
   add_executable(midiview midiview.c)

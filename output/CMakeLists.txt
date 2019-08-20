@@ -20,7 +20,7 @@ if(Qt5Widgets_FOUND)
   QT5_WRAP_UI(output_UIS_H output_settings.ui)
   QT5_WRAP_CPP(output_MOCS output_settings.h)
 
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+  include_directories(${CMAKE_CURRENT_BINARY_DIR} ${JACK_INCLUDE_DIR})
 
   add_executable(output output.cpp output_settings.cpp ${output_UIS_H} ${output_MOCS})
   target_link_libraries(output ${JACK_LIBRARIES} Qt5::Widgets)

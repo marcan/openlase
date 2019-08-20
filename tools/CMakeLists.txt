@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-include_directories (${CMAKE_SOURCE_DIR}/include)
+include_directories (${CMAKE_SOURCE_DIR}/include ${JACK_INCLUDE_DIR})
 link_directories (${CMAKE_BINARY_DIR}/libol)
 
 add_executable(playilda playilda.c)

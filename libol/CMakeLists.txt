@@ -24,7 +24,8 @@ check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)
 check_symbol_exists(_aligned_malloc malloc.h HAVE_ALIGNED_MALLOC)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
+include_directories (${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
+	${JACK_INCLUDE_DIR})
 
 set(TRACER_SOURCES "")
 if(BUILD_TRACER)

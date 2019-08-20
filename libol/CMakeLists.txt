@@ -16,6 +16,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
+include(CheckSymbolExists)
+
 check_include_file(malloc.h HAVE_MALLOC_H)
 check_symbol_exists(memalign malloc.h HAVE_MEMALIGN)
 check_symbol_exists(posix_memalign stdlib.h HAVE_POSIX_MEMALIGN)

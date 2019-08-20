@@ -522,7 +522,7 @@ int main (int argc, char *argv[])
 
 	while (1) {
 		stat(fname, &st2);
-		if(st1.st_mtim.tv_sec != st2.st_mtim.tv_sec || st1.st_mtim.tv_nsec != st2.st_mtim.tv_nsec) {
+		if(st1.st_mtime != st2.st_mtime || st1.st_mtime != st2.st_mtime) {
 			frameno = (frameno+1)%FRAMEBUFS;
 			printf("Loading new frame to slot %d\n", frameno);
 			if(frames[frameno].points)

@@ -37,7 +37,7 @@ else()
 endif()
 
 add_library (ol SHARED libol.c text.c ilda.c ${TRACER_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c)
-target_link_libraries (ol ${CMAKE_THREAD_LIBS_INIT} m jack)
+target_link_libraries (ol ${CMAKE_THREAD_LIBS_INIT} m ${JACK_LIBRARIES})
 set_target_properties(ol PROPERTIES VERSION 0 SOVERSION 0)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fontdef.c

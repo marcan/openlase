@@ -22,7 +22,7 @@ if(Qt5Widgets_FOUND AND FFMPEG_FOUND AND SWSCALE_FOUND AND BUILD_TRACER)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
   add_executable(qplayvid qplayvid.c qplayvid_gui.cpp ${qplayvid_MOCS})
-  target_link_libraries(qplayvid ol ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} Qt5::Widgets avresample)
+  target_link_libraries(qplayvid ol ${FFMPEG_LIBRARIES} ${SWSCALE_LIBRARIES} Qt5::Widgets)
 else()
   message(STATUS "Will NOT build qplayvid (Qt5 or FFmpeg or tracer missing)")
 endif()

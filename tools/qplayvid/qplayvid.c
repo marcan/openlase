@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
-#include <libavresample/avresample.h>
+#include <libswresample/swresample.h>
 #include <libavutil/frame.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixfmt.h>
@@ -99,7 +99,7 @@ struct PlayerCtx {
 	AVStream *a_stream;
 	AVCodecContext *a_codec_ctx;
 	AVCodec *a_codec;
-	AVAudioResampleContext *a_resampler;
+	SwrContext *a_resampler;
 	double a_ratio;
 
 	AVStream *v_stream;
@@ -151,9 +151,9 @@ size_t decode_audio(PlayerCtx *ctx, AVPacket *packet, int new_packet, int32_t se
 	if (!in_samples)
 		goto fail;
 
-	int out_samples = avresample_convert(ctx->a_resampler,
-		(uint8_t **)ctx->a_resample_output, 0, AVCODEC_MAX_AUDIO_FRAME_SIZE,
-		ctx->a_frame->data, ctx->a_frame->linesize[0], in_samples);
+	int out_samples = swr_convert(ctx->a_resampler,
+		(uint8_t **)ctx->a_resample_output, AVCODEC_MAX_AUDIO_FRAME_SIZE,
+		(const uint8_t **)ctx->a_frame->data, in_samples);
 	pthread_mutex_lock(&ctx->a_buf_mutex);
 
 	int free_samples;
@@ -466,14 +466,14 @@ int decoder_init(PlayerCtx *ctx, const char *file)
 
 		printf("Audio srate: %d\n", ctx->a_codec_ctx->sample_rate);
 
-		ctx->a_resampler = avresample_alloc_context();
+		ctx->a_resampler = swr_alloc();
 		av_opt_set_int(ctx->a_resampler, "in_channel_layout", ctx->a_codec_ctx->channel_layout, 0);
 		av_opt_set_int(ctx->a_resampler, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0);
 		av_opt_set_int(ctx->a_resampler, "in_sample_rate", ctx->a_codec_ctx->sample_rate, 0);
 		av_opt_set_int(ctx->a_resampler, "out_sample_rate", SAMPLE_RATE, 0);
 		av_opt_set_int(ctx->a_resampler, "in_sample_fmt", ctx->a_codec_ctx->sample_fmt, 0);
 		av_opt_set_int(ctx->a_resampler, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
-		if (avresample_open(ctx->a_resampler))
+		if (swr_init(ctx->a_resampler))
 			return -1;
 
 		ctx->a_ratio = SAMPLE_RATE/(double)ctx->a_codec_ctx->sample_rate;

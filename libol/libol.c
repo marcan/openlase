@@ -29,11 +29,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 typedef jack_default_audio_sample_t sample_t;
 typedef jack_nframes_t nframes_t;
 
-static jack_port_t *out_x;
-static jack_port_t *out_y;
-static jack_port_t *out_r;
-static jack_port_t *out_g;
-static jack_port_t *out_b;
+static jack_port_t *out_x[OL_MAX_OUTPUTS];
+static jack_port_t *out_y[OL_MAX_OUTPUTS];
+static jack_port_t *out_r[OL_MAX_OUTPUTS];
+static jack_port_t *out_g[OL_MAX_OUTPUTS];
+static jack_port_t *out_b[OL_MAX_OUTPUTS];
 static jack_port_t *out_al;
 static jack_port_t *out_ar;
 
@@ -64,17 +64,20 @@ typedef struct {
 typedef struct {
 	int pmax;
 	int pnext;
-	Point *points;
+	Point *points[OL_MAX_OUTPUTS];
 	float *audio_l;
 	float *audio_r;
 } RenderedFrame;
+
+static OLConfig g_config;
 
 static RenderedFrame *frames;
 static nframes_t jack_rate;
 
 static OLFrameInfo last_info;
 
-static Frame wframe;
+static Frame wframes[OL_MAX_OUTPUTS];
+static Frame *wframe;
 
 typedef struct {
 	Object *curobj;
@@ -90,7 +93,7 @@ static DrawState dstate;
 
 static OLRenderParams params;
 
-static Point last_render_point;
+static Point last_render_point[OL_MAX_OUTPUTS];
 
 static volatile int crbuf;
 static volatile int cwbuf;
@@ -140,12 +143,12 @@ static uint32_t colmul(uint32_t a, uint32_t b)
 static Point *ps_alloc(int count)
 {
 	Point *ret;
-	if ((count + wframe.psnext) > wframe.psmax) {
-		olLog("Point buffer overflow (temp): need %d points, have %d\n", count + wframe.psnext, wframe.psmax);
+	if ((count + wframe->psnext) > wframe->psmax) {
+		olLog("Point buffer overflow (temp): need %d points, have %d\n", count + wframe->psnext, wframe->psmax);
 		exit(1);
 	}
-	ret = wframe.points + wframe.psnext;
-	wframe.psnext += count;
+	ret = wframe->points + wframe->psnext;
+	wframe->psnext += count;
 	return ret;
 }
 
@@ -169,21 +172,29 @@ static void jack_shutdown (void *arg)
 
 static int process (nframes_t nframes, void *arg)
 {
-	sample_t *o_x = (sample_t *) jack_port_get_buffer (out_x, nframes);
-	sample_t *o_y = (sample_t *) jack_port_get_buffer (out_y, nframes);
-	sample_t *o_r = (sample_t *) jack_port_get_buffer (out_r, nframes);
-	sample_t *o_g = (sample_t *) jack_port_get_buffer (out_g, nframes);
-	sample_t *o_b = (sample_t *) jack_port_get_buffer (out_b, nframes);
+	sample_t *o_x[OL_MAX_OUTPUTS], *o_y[OL_MAX_OUTPUTS];
+	sample_t *o_r[OL_MAX_OUTPUTS], *o_g[OL_MAX_OUTPUTS], *o_b[OL_MAX_OUTPUTS];
+
 	sample_t *o_al = (sample_t *) jack_port_get_buffer (out_al, nframes);
 	sample_t *o_ar = (sample_t *) jack_port_get_buffer (out_ar, nframes);
 
+	for (int i = 0; i < g_config.num_outputs; i++) {
+		o_x[i] = (sample_t *) jack_port_get_buffer (out_x[i], nframes);
+		o_y[i] = (sample_t *) jack_port_get_buffer (out_y[i], nframes);
+		o_r[i] = (sample_t *) jack_port_get_buffer (out_r[i], nframes);
+		o_g[i] = (sample_t *) jack_port_get_buffer (out_g[i], nframes);
+		o_b[i] = (sample_t *) jack_port_get_buffer (out_b[i], nframes);
+	}
+
 	if (!first_time_full) {
 		//olLog("Dummy frame!\n");
-		memset(o_x, 0, nframes * sizeof(sample_t));
-		memset(o_y, 0, nframes * sizeof(sample_t));
-		memset(o_r, 0, nframes * sizeof(sample_t));
-		memset(o_g, 0, nframes * sizeof(sample_t));
-		memset(o_b, 0, nframes * sizeof(sample_t));
+		for (int i = 0; i < g_config.num_outputs; i++) {
+			memset(o_x[i], 0, nframes * sizeof(sample_t));
+			memset(o_y[i], 0, nframes * sizeof(sample_t));
+			memset(o_r[i], 0, nframes * sizeof(sample_t));
+			memset(o_g[i], 0, nframes * sizeof(sample_t));
+			memset(o_b[i], 0, nframes * sizeof(sample_t));
+		}
 		memset(o_al, 0, nframes * sizeof(sample_t));
 		memset(o_ar, 0, nframes * sizeof(sample_t));
 		return 0;
@@ -210,13 +221,15 @@ static int process (nframes_t nframes, void *arg)
 			count = left;
 		int i;
 		for (i=0; i<count; i++) {
-			Point *p = &frames[crbuf].points[out_point];
-			*o_x++ = p->x;
-			*o_y++ = p->y;
+			for (int i = 0; i < g_config.num_outputs; i++) {
+				Point *p = &frames[crbuf].points[i][out_point];
+				*o_x[i]++ = p->x;
+				*o_y[i]++ = p->y;
 
-			*o_r++ = ((p->color >> 16) & 0xff) / 255.0f;
-			*o_g++ = ((p->color >> 8) & 0xff) / 255.0f;
-			*o_b++ = (p->color & 0xff) / 255.0f;
+				*o_r[i]++ = ((p->color >> 16) & 0xff) / 255.0f;
+				*o_g[i]++ = ((p->color >> 8) & 0xff) / 255.0f;
+				*o_b[i]++ = (p->color & 0xff) / 255.0f;
+			}
 
 			*o_al++ = frames[crbuf].audio_l[out_point];
 			*o_ar++ = frames[crbuf].audio_r[out_point];
@@ -232,34 +245,55 @@ static int process (nframes_t nframes, void *arg)
 
 int olInit(int buffer_count, int max_points)
 {
+	OLConfig config = {
+		.buffer_count = buffer_count,
+		.max_points = max_points,
+		.num_outputs = 1,
+	};
+
+	return olInit2(&config);
+}
+
+int olInit2(const OLConfig *config)
+{
 	int i;
 	static const char jack_client_name[] = "libol";
 	jack_status_t jack_status;
-	
-	if (buffer_count < 2)
+
+	if (config->buffer_count < 2)
 		return -1;
+
+	g_config = *config;
 
 	memset(&dstate, 0, sizeof(dstate));
 	memset(&last_render_point, 0, sizeof(last_render_point));
 
-	buflag = buffer_count;
-	fbufs = buffer_count+1;
+	buflag = config->buffer_count;
+	fbufs = config->buffer_count+1;
 
 	cwbuf = 0;
 	crbuf = 0;
 	out_point = -1;
 	first_time_full = 0;
 	first_output_frame = 0;
-	memset(&wframe, 0, sizeof(Frame));
-	wframe.objmax = 16;
-	wframe.objects = malloc(wframe.objmax * sizeof(Object));
-	wframe.psmax = max_points;
-	wframe.points = malloc(wframe.psmax * sizeof(Point));
+	
+	for (i=0; i<config->num_outputs; i++) {
+		wframe = &wframes[i];
+		memset(wframe, 0, sizeof(Frame));
+		wframe->objmax = 16;
+		wframe->objects = malloc(wframe->objmax * sizeof(Object));
+		wframe->psmax = config->max_points;
+		wframe->points = malloc(wframe->psmax * sizeof(Point));
+	}
+	wframe = &wframes[0];
+
 	frames = malloc(fbufs * sizeof(RenderedFrame));
 	for (i=0; i<fbufs; i++) {
 		memset(&frames[i], 0, sizeof(RenderedFrame));
-		frames[i].pmax = max_points;
-		frames[i].points = malloc(frames[i].pmax * sizeof(Point));
+		frames[i].pmax = config->max_points;
+		for (int j=0; j<config->num_outputs; j++) {
+			frames[i].points[j] = malloc(frames[i].pmax * sizeof(Point));
+		}
 		frames[i].audio_l = malloc(frames[i].pmax * sizeof(float));
 		frames[i].audio_r = malloc(frames[i].pmax * sizeof(float));
 	}
@@ -274,11 +308,24 @@ int olInit(int buffer_count, int max_points)
 	jack_set_sample_rate_callback (client, srate, 0);
 	jack_on_shutdown (client, jack_shutdown, 0);
 
-	out_x = jack_port_register (client, "out_x", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_y = jack_port_register (client, "out_y", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_r = jack_port_register (client, "out_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_g = jack_port_register (client, "out_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
-	out_b = jack_port_register (client, "out_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_x[0] = jack_port_register (client, "out_x", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_y[0] = jack_port_register (client, "out_y", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_r[0] = jack_port_register (client, "out_r", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_g[0] = jack_port_register (client, "out_g", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	out_b[0] = jack_port_register (client, "out_b", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	for (i=1; i<config->num_outputs; i++) {
+		char buf[32];
+		snprintf(buf, 32, "out%d_x", i);
+		out_x[i] = jack_port_register (client, buf, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		snprintf(buf, 32, "out%d_y", i);
+		out_y[i] = jack_port_register (client, buf, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		snprintf(buf, 32, "out%d_r", i);
+		out_r[i] = jack_port_register (client, buf, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		snprintf(buf, 32, "out%d_g", i);
+		out_g[i] = jack_port_register (client, buf, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		snprintf(buf, 32, "out%d_b", i);
+		out_b[i] = jack_port_register (client, buf, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+	}
 	out_al = jack_port_register (client, "out_al", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	out_ar = jack_port_register (client, "out_ar", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 
@@ -335,14 +382,14 @@ void olBegin(int prim)
 {
 	if (dstate.curobj)
 		return;
-	if (wframe.objmax == wframe.objcnt) {
-		wframe.objmax *= 2;
-		wframe.objects = realloc(wframe.objects, wframe.objmax * sizeof(Object));
+	if (wframe->objmax == wframe->objcnt) {
+		wframe->objmax *= 2;
+		wframe->objects = realloc(wframe->objects, wframe->objmax * sizeof(Object));
 	}
-	dstate.curobj = wframe.objects + wframe.objcnt;
+	dstate.curobj = wframe->objects + wframe->objcnt;
 	memset(dstate.curobj, 0, sizeof(Object));
 	memcpy(dstate.curobj->bbox, bbox, sizeof(bbox));
-	dstate.curobj->points = wframe.points + wframe.psnext;
+	dstate.curobj->points = wframe->points + wframe->psnext;
 	dstate.prim = prim;
 	dstate.state = 0;
 	dstate.points = 0;
@@ -627,7 +674,7 @@ void olEnd(void)
 			break;
 	}
 	if (nl && nr && nu && nd)
-		wframe.objcnt++;
+		wframe->objcnt++;
 	dstate.curobj = NULL;
 }
 
@@ -640,15 +687,15 @@ static void chkpts(int count)
 	}
 }
 
-static void addrndpoint(float x, float y, uint32_t color)
+static void addrndpoint(int output, float x, float y, uint32_t color)
 {
-	frames[cwbuf].points[frames[cwbuf].pnext].x = x;
-	frames[cwbuf].points[frames[cwbuf].pnext].y = y;
-	frames[cwbuf].points[frames[cwbuf].pnext].color = color;
+	frames[cwbuf].points[output][frames[cwbuf].pnext].x = x;
+	frames[cwbuf].points[output][frames[cwbuf].pnext].y = y;
+	frames[cwbuf].points[output][frames[cwbuf].pnext].color = color;
 	frames[cwbuf].pnext++;
 }
 
-static int render_object(Object *obj)
+static int render_object(int output, Object *obj)
 {
 	int i,j;
 	// heuristic... might overflow in pathological cases
@@ -675,49 +722,40 @@ static int render_object(Object *obj)
 		if (ip->color == 0 && (params.render_flags & RENDER_CULLDARK))
 			inside = 0;
 		if (inside && !prev_inside) {
-			float dx = ip->x - last_render_point.x;
-			float dy = ip->y - last_render_point.y;
+			float dx = ip->x - last_render_point[output].x;
+			float dy = ip->y - last_render_point[output].y;
 			float distance = fmaxf(fabsf(dx),fabsf(dy));
 			int points = ceilf(distance/params.off_speed);
 			if (distance > params.snap) {
 				for (j=0; j<params.end_wait; j++) {
-					addrndpoint(last_render_point.x, last_render_point.y, C_BLACK);
+					addrndpoint(output, last_render_point[output].x, last_render_point[output].y, C_BLACK);
 				}
 				for (j=0; j<points; j++) {
-					addrndpoint(last_render_point.x + (dx/(float)points) * j,
-								last_render_point.y + (dy/(float)points) * j,
+					addrndpoint(output, last_render_point[output].x + (dx/(float)points) * j,
+								last_render_point[output].y + (dy/(float)points) * j,
 								C_BLACK);
 				}
 				for (j=0; j<params.start_wait; j++) {
-					addrndpoint(ip->x, ip->y, C_BLACK);
+					addrndpoint(output, ip->x, ip->y, C_BLACK);
 				}
 			}
 		}
 		if (inside) {
-			last_render_point = *ip;
-			addrndpoint(ip->x, ip->y, ip->color);
+			last_render_point[output] = *ip;
+			addrndpoint(output, ip->x, ip->y, ip->color);
 		}
 		prev_inside = inside;
 	}
 	return 1;
 }
 
-float olRenderFrame(int max_fps)
+static int render_output(int output, int max_fps)
 {
-	int i;
 	int count = 0;
-
 	int min_points = params.rate / max_fps;
 
-	memset(&last_info, 0, sizeof(last_info));
-
-	while (((cwbuf+1)%fbufs) == crbuf) {
-		//olLog("Waiting %d %d\n", cwbuf, crbuf);
-		usleep(1000);
-		first_time_full = 1;
-	}
 	frames[cwbuf].pnext=0;
-	int cnt = wframe.objcnt;
+	int cnt = wframe->objcnt;
 	float dclosest = 0;
 	int clinv = 0;
 
@@ -725,25 +763,25 @@ float olRenderFrame(int max_fps)
 		Point closest_to = {-1,-1,0}; // first look for the object nearest the botleft
 		while(cnt) {
 			Object *closest = NULL;
-			for (i=0; i<wframe.objcnt; i++) {
-				if (!wframe.objects[i].pointcnt)
+			for (int i=0; i<wframe->objcnt; i++) {
+				if (!wframe->objects[i].pointcnt)
 					continue;
-				if (wframe.objects[i].pointcnt < params.min_length)
+				if (wframe->objects[i].pointcnt < params.min_length)
 					continue;
-				float dx = wframe.objects[i].points[0].x - closest_to.x;
-				float dy = wframe.objects[i].points[0].y - closest_to.y;
+				float dx = wframe->objects[i].points[0].x - closest_to.x;
+				float dy = wframe->objects[i].points[0].y - closest_to.y;
 				float distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
 				if (!closest || distance < dclosest) {
-					closest = &wframe.objects[i];
+					closest = &wframe->objects[i];
 					clinv = 0;
 					dclosest = distance;
 				}
 				if (!(params.render_flags & RENDER_NOREVERSE)) {
-					dx = wframe.objects[i].points[wframe.objects[i].pointcnt-1].x - closest_to.x;
-					dy = wframe.objects[i].points[wframe.objects[i].pointcnt-1].y - closest_to.y;
+					dx = wframe->objects[i].points[wframe->objects[i].pointcnt-1].x - closest_to.x;
+					dy = wframe->objects[i].points[wframe->objects[i].pointcnt-1].y - closest_to.y;
 					distance = fmaxf(fabsf(dx),fabsf(dy)) + 0.01*(fabsf(dx)+fabsf(dy));
 					if(!closest || distance < dclosest) {
-						closest = &wframe.objects[i];
+						closest = &wframe->objects[i];
 						clinv = 1;
 						dclosest = distance;
 					}
@@ -754,15 +792,15 @@ float olRenderFrame(int max_fps)
 			if (clinv) {
 				Point *pt = closest->points;
 				int cnt = closest->pointcnt;
-				for (i=0; i<cnt/2; i++) {
+				for (int i=0; i<cnt/2; i++) {
 					Point tmp = pt[i];
 					pt[i] = pt[cnt-i-1];
 					pt[cnt-i-1] = tmp;
 				}
 			}
-			//olLog("%d (%d) (nearest to %f,%f)\n", closest - wframe.objects, closest->pointcnt, closest_to.x, closest_to.y);
-			if (render_object(closest))
-				closest_to = last_render_point;
+			//olLog("%d (%d) (nearest to %f,%f)\n", closest - wframe->objects, closest->pointcnt, closest_to.x, closest_to.y);
+			if (render_object(output, closest))
+				closest_to = last_render_point[output];
 			//olLog("[%d] ", frames[cwbuf].pnext);
 			//olLog("[LRP:%f %f]\n", last_render_point.x, last_render_point.y);
 			closest->pointcnt = 0;
@@ -771,14 +809,14 @@ float olRenderFrame(int max_fps)
 		}
 		//olLog("\n");
 	} else {
-		for (i=0; i<wframe.objcnt; i++) {
-			if (wframe.objects[i].pointcnt < params.min_length)
+		for (int i=0; i<wframe->objcnt; i++) {
+			if (wframe->objects[i].pointcnt < params.min_length)
 				continue;
-			render_object(&wframe.objects[i]);
+			render_object(output, &wframe->objects[i]);
 		}
 	}
-	wframe.psnext = 0;
-	wframe.objcnt = 0;
+	wframe->psnext = 0;
+	wframe->objcnt = 0;
 	count = frames[cwbuf].pnext;
 	last_info.points = count;
 
@@ -788,7 +826,7 @@ float olRenderFrame(int max_fps)
 		int out_count = params.max_framelen;
 		chkpts(count);
 
-		Point *pin = frames[cwbuf].points;
+		Point *pin = frames[cwbuf].points[output];
 		Point *pout = &pin[in_count];
 
 		float pos = 0;
@@ -821,17 +859,55 @@ float olRenderFrame(int max_fps)
 		last_info.resampled_points = count;
 	}
 	if (count) {
-		last_render_point.x = frames[cwbuf].points[count-1].x;
-		last_render_point.y = frames[cwbuf].points[count-1].y;
+		last_render_point[output].x = frames[cwbuf].points[output][count-1].x;
+		last_render_point[output].y = frames[cwbuf].points[output][count-1].y;
 	}
 	while(count < min_points) {
-		frames[cwbuf].points[count].x = last_render_point.x;
-		frames[cwbuf].points[count].y = last_render_point.y;
-		frames[cwbuf].points[count].color = C_BLACK;
+		frames[cwbuf].points[output][count].x = last_render_point[output].x;
+		frames[cwbuf].points[output][count].y = last_render_point[output].y;
+		frames[cwbuf].points[output][count].color = C_BLACK;
 		count++;
 		last_info.padding_points++;
 	}
 	frames[cwbuf].pnext = count;
+
+	return count;
+}
+
+void olSetOutput(int output)
+{
+	wframe = &wframes[output];
+}
+
+float olRenderFrame(int max_fps)
+{
+	int counts[OL_MAX_OUTPUTS];
+	int count = 0;
+
+	memset(&last_info, 0, sizeof(last_info));
+
+	while (((cwbuf+1)%fbufs) == crbuf) {
+		//olLog("Waiting %d %d\n", cwbuf, crbuf);
+		usleep(1000);
+		first_time_full = 1;
+	}
+
+	for (int i = 0; i < g_config.num_outputs; i++) {
+		wframe = &wframes[i];
+		counts[i] = render_output(i, max_fps);
+		if (counts[i] > count)
+			count = counts[i];
+	}
+	wframe = &wframes[0];
+
+	for (int i = 0; i < g_config.num_outputs; i++) {
+		Point p = {0, 0, 0, 0};
+		if (counts[i] > 0)
+			p = frames[cwbuf].points[i][counts[i] - 1];
+		for (int j = counts[i]; j < count; j++) {
+			frames[cwbuf].points[i][j] = p;
+		}
+	}
 
 	if (audiocb) {
 		audiocb(frames[cwbuf].audio_l, frames[cwbuf].audio_r, count);

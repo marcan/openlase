@@ -52,6 +52,14 @@ enum {
 	RENDER_CULLDARK = 8,
 };
 
+#define OL_MAX_OUTPUTS 16
+
+typedef struct {
+	int buffer_count;
+	int max_points;
+	int num_outputs;
+} OLConfig;
+
 typedef struct {
 	int rate;
 	float on_speed;
@@ -80,9 +88,12 @@ typedef struct {
 } OLFrameInfo;
 
 int olInit(int buffer_count, int max_points);
+int olInit2(const OLConfig *config);
 
 void olSetRenderParams(OLRenderParams *params);
 void olGetRenderParams(OLRenderParams *params);
+
+void olSetOutput(int output);
 
 typedef void (*AudioCallbackFunc)(float *leftbuf, float *rightbuf, int samples);
 

@@ -33,6 +33,11 @@ cdef extern from "libol.h":
 		_RENDER_NOREORDER "RENDER_NOREORDER"
 		_RENDER_NOREVERSE "RENDER_NOREVERSE"
 
+	ctypedef struct OLConfig:
+		int buffer_count
+		int max_points
+		int num_outputs
+
 	ctypedef struct OLRenderParams:
 		int rate
 		float on_speed
@@ -58,9 +63,12 @@ cdef extern from "libol.h":
 		int padding_points
 
 	int olInit(int buffer_count, int max_points)
+	int olInit2(OLConfig *config)
 
 	void olSetRenderParams(OLRenderParams *params)
 	void olGetRenderParams(OLRenderParams *params)
+
+	void olSetOutput(int output)
 
 	ctypedef void (*AudioCallbackFunc)(float *leftbuf, float *rightbuf, int samples) except *
 
@@ -200,6 +208,9 @@ cdef class RenderParams:
 		new.max_framelen = self.max_framelen
 		return new
 
+cpdef setOutput(output):
+	olSetOutput(output)
+
 cpdef setRenderParams(params):
 	cdef OLRenderParams cparams
 	cparams.rate = params.rate
@@ -240,8 +251,14 @@ cpdef getRenderParams():
 	pyparams.max_framelen = params.max_framelen
 	return pyparams
 
-cpdef int init(int buffer_count=4, int max_points=30000):
-	cdef int ret = olInit(buffer_count, max_points)
+cpdef int init(int buffer_count=4, int max_points=30000, int num_outputs=1):
+	cdef OLConfig config
+	
+	config.buffer_count = buffer_count
+	config.max_points = max_points
+	config.num_outputs = num_outputs
+
+	cdef int ret = olInit2(&config)
 	if ret < 0:
 		return ret
 	setRenderParams(RenderParams())

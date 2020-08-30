@@ -40,7 +40,9 @@ with this program; if not, write to the Free Software Foundation, Inc., 51
 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 --------------------------------------------------------------------------------
 
-Of note, while most of libol is licensable under the LGPL, currently, the tracer
-is not, due to a dependency on a small amount of GPL-only code in
-imgproc_sse2.asm. This may change in the future. To compile an LGPL-compatible
-binary of libol, you must currently build with BUILD_TRACER=N.
+libol, including the Python bindings, is licensable under the LGPL. This
+includes everything in the following directories:
+
+- libol/
+- python/
+- include/

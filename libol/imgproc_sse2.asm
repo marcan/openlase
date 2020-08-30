@@ -1,41 +1,36 @@
 ;*****************************************************************************
 ;*         OpenLase - a realtime laser graphics toolkit
 ;*
-;* Copyright (C) 2009-2011 Hector Martin "marcan" <hector@marcansoft.com>
+;* Copyright (C) 2009-2019 Hector Martin "marcan" <hector@marcansoft.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
-;* it under the terms of the GNU General Public License as published by
-;* the Free Software Foundation, either version 2 or version 3.
+;* it under the terms of the GNU Lesser General Public License as published by
+;* the Free Software Foundation, either version 2.1 or version 3.
 ;*
 ;* This program is distributed in the hope that it will be useful,
 ;* but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;* GNU General Public License for more details.
+;* GNU Lesser General Public License for more details.
 ;*
-;* You should have received a copy of the GNU General Public License
+;* You should have received a copy of the GNU Lesser General Public License
 ;* along with this program; if not, write to the Free Software
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 ;*
 ;*****************************************************************************
 
 ;*****************************************************************************
-;* Transpose helpers based on x264 code (x86util.asm), licensed GPLv2+ as
+;* Transpose helpers based on ffmpeg code (x86util.asm), licensed LGPLv2+ as
 ;* follows:
 ;*****************************************************************************
-;* x86util.asm: x86 utility macros
+;* x86util.asm
 ;*****************************************************************************
-;* Copyright (C) 2008-2011 x264 project
+;* Copyright (C) 2008-2010 x264 project
 ;*
-;* Authors: Holger Lubitz <holger@lubitz.org>
-;*          Loren Merritt <lorenm@u.washington.edu>
-;*****************************************************************************
-
-;*****************************************************************************
-;
-; Licensing note: source code other than the transpose helpers is licensable
-; under the GNU Lesser General Public license, either version 2.1 or version
-; 3.
-;
+;* Authors: Loren Merritt <lorenm@u.washington.edu>
+;*          Holger Lubitz <holger@lubitz.org>
+;*
+;* This file is part of FFmpeg.
+;* x86util.asm: x86 utility macros
 ;*****************************************************************************
 
 

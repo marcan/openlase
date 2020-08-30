@@ -59,14 +59,9 @@ INIT_XMM
 ;*****************************************************************************
 
 %macro SBUTTERFLY 4
-%if avx_enabled == 0
     mova      m%4, m%2
     punpckl%1 m%2, m%3
     punpckh%1 m%4, m%3
-%else
-    punpckh%1 m%4, m%2, m%3
-    punpckl%1 m%2, m%3
-%endif
     SWAP %3, %4
 %endmacro
 
